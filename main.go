@@ -1,17 +1,15 @@
 package main
 
 import (
-	"bytes"
 	"database/sql"
 	"fmt"
 	"github.com/igknot/gppStandby/database"
 	"github.com/jasonlvhit/gocron"
-	"golang.org/x/crypto/ssh"
 	"log"
-	"os"
-	//"strings"
-	"io/ioutil"
+
 	"time"
+	"github.com/igknot/gppStandby/alerting"
+	"github.com/igknot/gppStandby/remote"
 )
 
 var db *sql.DB
@@ -21,13 +19,17 @@ var newTrans, trackedTrans, scheduledTrans, newAndtracked int64
 
 
 func main() {
-	//edoResponseLEG()
-	//edoResponseSAP()
+	edoResponseLEG()
+	edoResponseSAP()
 	//
+	//
+	//
+	//getRolloverdate("ZA1")
+	//getRolloverdate("***")
 	//return
+	//
+	//
 
-
-	
 	logNow()
 	db = database.NewConnection()
 	defer db.Close()
@@ -36,7 +38,7 @@ func main() {
 
 	scheduler := gocron.NewScheduler()
 	//1 ZA date rollover 23:32
-	scheduler.Every(1).Day().At("23:37").Do(getRolloverdate, "***")
+	scheduler.Every(1).Day().At("23:42").Do(getRolloverdate, "***")
 
 	//2 global date rollover 00:22
 	scheduler.Every(1).Day().At("00:22").Do(getRolloverdate, "ZA1")
@@ -56,7 +58,7 @@ func main() {
 	scheduler.Every(1).Day().At("00:37").Do(newAndTracked)
 
 	//7 Check edo files 00:57 + 2minutes for safety
-	scheduler.Every(1).Day().At("00:57").Do(edoFiles)
+	scheduler.Every(1).Day().At("00:57").Do(edoFilesOutGoing)
 
 	//8 edoFileArchived() //01:01//
 	scheduler.Every(1).Day().At("01:01").Do(edoFileArchived)
@@ -80,7 +82,7 @@ func logNow() {
 }
 
 func allchecks() {
-	fmt.Println("---------------------------------------------")
+
 	logNow()
 
 	//23:31 and 00:21
@@ -90,7 +92,7 @@ func allchecks() {
 	trackingTransactions()
 	ScheduledTransactions()
 	newAndTracked()
-	edoFiles()        //00:57
+	edoFilesOutGoing()        //00:57
 	edoFileArchived() //01:01
 	edoResponseSAP()  //anytime before 01:30 or 02:30 send mail to rcop if they are not there
 	edoResponseLEG()
@@ -99,7 +101,7 @@ func allchecks() {
 		"\nNewAndTrackedc", newAndtracked)
 }
 func reset() {
-	fmt.Println("---------------------------------------------")
+	logNow()
 	zaDate = ""
 	xxxDate = ""
 	newTrans = 0
@@ -110,7 +112,7 @@ func reset() {
 }
 func getRolloverdate(office string) {
 	db = database.NewConnection()
-
+	var message string
 	defer db.Close()
 
 	logNow()
@@ -133,19 +135,22 @@ func getRolloverdate(office string) {
 		if office == "***" {
 			xxxDate = bsnessdate[:10]
 			if bsnessdate[:10] != tomorrow {
-				fmt.Printf("Date for office *** did not roll\nExpected: %s \nFound:    %s", tomorrow, bsnessdate[:10])
+				message = fmt.Sprintf("Date for office *** did not roll\nExpected: %s \nFound:    %s", tomorrow, bsnessdate[:10])
+
 			} else {
-				fmt.Println("Date roll Complete for ***")
+				message = fmt.Sprintf("Date roll for office *** complete now :   %s", bsnessdate[:10])
 			}
 		}
 		if office == "ZA1" {
 			zaDate = bsnessdate[:10]
 			if bsnessdate[:10] != today {
-				fmt.Printf("Date for office *** did not roll\nExpected: %s \nFound:    %s", today, bsnessdate[:10])
+				message = fmt.Sprintf("Date for office ZA1 did not roll\nExpected: %s \nFound:    %s", tomorrow, bsnessdate[:10])
 			} else {
-				fmt.Println("Date roll Complete for ZA1")
+				message = fmt.Sprintf("Date roll for office ZA1 complete now :   %s", bsnessdate[:10])
 			}
 		}
+		fmt.Println(message)
+		alerting.Info(message)
 
 	}
 
@@ -160,7 +165,7 @@ func newTransactions() {
 
 	tomorrow := time.Now().AddDate(0, 0, 1).Format(defaultFormat)
 
-	query := "SELECT count(*) transactions FROM gpp_sp.minf WHERE p_msg_sts LIKE 'WAIT%' AND p_dbt_vd = '" + tomorrow + "'"
+	query := "SELECT count(*) transactions FROM gpp_sp.minf WHERE p_msg_sts = 'WAITSCHEDSUBBATCH' AND p_dbt_vd = '" + tomorrow + "'  and p_msg_type = 'Pacs_003'"
 
 	fmt.Println("\n\n", query)
 
@@ -173,8 +178,10 @@ func newTransactions() {
 
 		rows.Scan(&transactions)
 
-		fmt.Println("New transactions(WAIT%): ", transactions)
+		message := fmt.Sprintf("New transactions(WAITSCHEDSUBBATCH): %d ", transactions)
 		newTrans = transactions
+		fmt.Println(message)
+		alerting.Info(message)
 	}
 
 }
@@ -187,7 +194,7 @@ func trackingTransactions() {
 	today := time.Now().Format(defaultFormat)
 	//tomorrow := time.Now().AddDate(0, 0, 1).Format(defaultFormat)
 
-	query := "SELECT count(*) transactions FROM gpp_sp.minf WHERE p_msg_sts LIKE 'MP_%' AND p_dbt_vd = '" + today + "'"
+	query := "SELECT count(*) transactions FROM gpp_sp.minf WHERE p_msg_sts = 'MP_WAIT' AND p_dbt_vd = '" + today + "'  and p_msg_type = 'Pacs_003'"
 
 	fmt.Println("\n\n", query)
 
@@ -200,8 +207,10 @@ func trackingTransactions() {
 
 		rows.Scan(&transactions)
 
-		fmt.Println("Tracking transactions(MP_%) ", transactions)
+		message := fmt.Sprintf("Tracking transactions(MP_WAIT) %d", transactions)
 		trackedTrans = transactions
+		fmt.Println(message)
+		alerting.Info(message)
 	}
 
 }
@@ -213,7 +222,7 @@ func ScheduledTransactions() {
 	defaultFormat := "02/Jan/2006"
 	today := time.Now().Format(defaultFormat)
 
-	query := "SELECT count(*) transactions FROM gpp_sp.minf WHERE p_msg_sts LIKE 'SCH%' AND p_dbt_vd = '" + today + "' "
+	query := "SELECT count(*) transactions FROM gpp_sp.minf WHERE p_msg_sts LIKE 'SCH%' AND p_dbt_vd = '" + today + "'  and p_msg_type = 'Pacs_003'"
 
 	fmt.Println(" \n\n", query)
 
@@ -230,12 +239,12 @@ func ScheduledTransactions() {
 		scheduledTrans = transactions
 
 	}
-	fmt.Printf("Tracked - prev : %d \nScheduled: %d  \n", trackedTrans, scheduledTrans)
+	message := fmt.Sprintf("Tracked : %d \nScheduled: %d  \n", trackedTrans, scheduledTrans)
 
 	if (trackedTrans) != scheduledTrans {
-		fmt.Println("Alert")
+		message = message + fmt.Sprintf("Alert  - (trackedTrans) != scheduledTrans ")
 	} else {
-		fmt.Println(" GOOD ")
+		message = message +" GOOD "
 	}
 
 }
@@ -248,7 +257,7 @@ func newAndTracked() {
 	defaultFormat := "02/Jan/2006"
 	today := time.Now().Format(defaultFormat)
 
-	query := "SELECT count(*) transactions FROM gpp_sp.minf WHERE p_msg_sts LIKE 'MP_WAIT%' AND p_dbt_vd = '" + today + "'  "
+	query := "SELECT count(*) transactions FROM gpp_sp.minf WHERE p_msg_sts LIKE 'MP_WAIT%' AND p_dbt_vd = '" + today + "'  and p_msg_type = 'Pacs_003' "
 
 	fmt.Println(" \n\n", query)
 
@@ -256,27 +265,28 @@ func newAndTracked() {
 	if err != nil {
 		log.Print(err.Error())
 	}
+	var message string
 	for rows.Next() {
 		var transactions int64
 
 		rows.Scan(&transactions)
 
-		fmt.Println("New and tracked", transactions)
+		message = fmt.Sprintf("New and tracked(MP_WAIT)", transactions)
 		newAndtracked = transactions
 	}
 	if newAndtracked != (scheduledTrans + newTrans) {
-		fmt.Println("new and tracked does not add up (scheduled and new ")
+		message += "\nA<b>ALERT:</b>New MP_WAIT does not add up scheduled + new "
 	}
-
+	alerting.Info(message)
 }
-func edoFiles() {
+func edoFilesOutGoing() {
 	logNow()
 	command := "find /cdwasha/connectdirect/outgoing/EDO_DirectDebitRequest -type f -cmin -60 -name 'EDO_POST*' -exec wc -l {} \\; "
 	// 00:57
 
 	fmt.Println("EdoFiles\n", command)
 
-	output, err := remoteRun(command)
+	output, err := remote.RemoteSsh(command)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
@@ -291,7 +301,7 @@ func edoFileArchived() { //01:00
 	// 00:
 	//gppadm@s1paygpp1v[/cdwasha/connectdirect/outgoing/EDO_DirectDebitRequest/ ]$
 	fmt.Println("EdoFilesArchived\n", command)
-	output, err := remoteRun(command)
+	output, err := remote.RemoteSsh(command)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
@@ -311,7 +321,8 @@ func edoResponseLEG() {
 	// 00:57
 	//gppadm@s1paygpp1v[/cdwasha/connectdirect/outgoing/EDO_DirectDebitRequest/ ]$
 	fmt.Println( command)
-	output, err := remoteRun(command)
+	remote.RemoteSsh(command)
+	output, err := remote.RemoteSsh(command)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
@@ -329,7 +340,7 @@ func edoResponseSAP() {
 
 	command := "wc -l /cdwasha/connectdirect/incoming/EDO_DirectDebitResponse/archive/" + today + "*ACDEBIT.RESPONSE.SAP.*"
 	fmt.Println("EdoResponseSAP\n", command)
-	output, err := remoteRun(command)
+	output, err := remote.RemoteSsh(command)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
@@ -343,59 +354,3 @@ func sendmail() {}
 func sendtelegram() {}
 
 func callout() {}
-
-func remoteRun(cmd string) (string, error) {
-
-	config := &ssh.ClientConfig{
-		User: sshUser(),
-
-		Auth: []ssh.AuthMethod{
-			PublicKeyFile("/tmp/id_rsa")},
-	}
-
-	config.HostKeyCallback = ssh.InsecureIgnoreHostKey()
-
-	// Connect
-	addr := sshEndpoint()
-	client, err := ssh.Dial("tcp", addr, config)
-	if err != nil {
-
-		return "", err
-	}
-	// Create a session. It is one session per command.
-	session, err := client.NewSession()
-	if err != nil {
-		return "", err
-	}
-	defer session.Close()
-	var b bytes.Buffer  // import "bytes"
-	session.Stdout = &b // get output
-
-	err = session.Run(cmd)
-
-	return b.String(), err
-}
-
-func sshUser() string {
-	return os.Getenv("SSH_USER")
-}
-
-func sshEndpoint() string {
-	return os.Getenv("SSH_ENDPOINT")
-}
-
-func PublicKeyFile(file string) ssh.AuthMethod {
-	buffer, err := ioutil.ReadFile(file)
-	if err != nil {
-		fmt.Println(err.Error())
-		return nil
-	}
-
-	key, err := ssh.ParsePrivateKey(buffer)
-	if err != nil {
-		fmt.Println("Parsing failed", err.Error())
-		return nil
-	}
-
-	return ssh.PublicKeys(key)
-}
