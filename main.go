@@ -10,19 +10,24 @@ import (
 	"time"
 	"github.com/igknot/gppStandby/alerting"
 	"github.com/igknot/gppStandby/remote"
+	"strings"
+	"strconv"
 )
 
 var db *sql.DB
-var zaDate, xxxDate, edoFileName string
-var newTrans, trackedTrans, scheduledTrans, newAndtracked int64
+var zaDate, xxxDate, edoFileName , day0Date, day1Date string
+var  newTrans, trackedTrans, scheduledTrans, newAndtracked, trackedFromEDO int64
 
+var day1_WAITSCHEDSUBBATCH , day0_SCHEDULE , day1_MP_WAIT ,day0_NightTrackingFile ,edoPosting ,edoPostingArchive ,sapResponse , legacyResponse int64
 
 
 func main() {
-	edoResponseLEG()
-	edoResponseSAP()
-	//
-	//
+	defaultFormat := "02/Jan/2006"
+	day0Date = time.Now().AddDate(0, 0, 1).Format(defaultFormat)
+	day1Date = time.Now().Format(defaultFormat)
+
+	edoTrackingFileSAPLEG()
+	//allStatuses()
 	//
 	//getRolloverdate("ZA1")
 	//getRolloverdate("***")
@@ -37,14 +42,18 @@ func main() {
 	//allchecks()
 
 	scheduler := gocron.NewScheduler()
+	scheduler.Every(10).Minutes().Do(allStatuses)
+
+
+
 	//1 ZA date rollover 23:32
-	scheduler.Every(1).Day().At("23:42").Do(getRolloverdate, "***")
+	scheduler.Every(1).Day().At("23:40").Do(getRolloverdate, "***")
 
 	//2 global date rollover 00:22
 	scheduler.Every(1).Day().At("00:22").Do(getRolloverdate, "ZA1")
 
 	//3 new transactions
-	scheduler.Every(1).Day().At("23:55").Do(newTransactions)
+	scheduler.Every(1).Day().At("23:55").Do(getWAITSCHEDSUBBATCHcount)
 
 	//4 Tracking  transactions
 	scheduler.Every(1).Day().At("23:50").Do(trackingTransactions)
@@ -88,7 +97,7 @@ func allchecks() {
 	//23:31 and 00:21
 	getRolloverdate("ZA1")
 	getRolloverdate("***")
-	newTransactions()
+	getWAITSCHEDSUBBATCHcount()
 	trackingTransactions()
 	ScheduledTransactions()
 	newAndTracked()
@@ -156,16 +165,17 @@ func getRolloverdate(office string) {
 
 }
 
-func newTransactions() {
+func getWAITSCHEDSUBBATCHcount() {
 	db = database.NewConnection()
 	defer db.Close()
 
 	logNow()
-	defaultFormat := "02/Jan/2006"
+	//defaultFormat := "02/Jan/2006"
+	//defaultFormat := "02/Jan/2006"
+	//
+	//tomorrow := time.Now().AddDate(0, 0, 1).Format(defaultFormat)
 
-	tomorrow := time.Now().AddDate(0, 0, 1).Format(defaultFormat)
-
-	query := "SELECT count(*) transactions FROM gpp_sp.minf WHERE p_msg_sts = 'WAITSCHEDSUBBATCH' AND p_dbt_vd = '" + tomorrow + "'  and p_msg_type = 'Pacs_003'"
+	query := "SELECT count(*) transactions FROM gpp_sp.minf WHERE p_msg_sts = 'WAITSCHEDSUBBATCH' AND p_dbt_vd = '" + day1Date + "'  and p_msg_type = 'Pacs_003'"
 
 	fmt.Println("\n\n", query)
 
@@ -178,15 +188,54 @@ func newTransactions() {
 
 		rows.Scan(&transactions)
 
-		message := fmt.Sprintf("New transactions(WAITSCHEDSUBBATCH): %d ", transactions)
+		message := fmt.Sprintf("WAITSCHEDSUBBATCH - %s : %d ",day1Date, transactions)
 		newTrans = transactions
 		fmt.Println(message)
 		alerting.Info(message)
 	}
 
 }
+func edoTrackingFileSAPLEG(){
+	// after 00:01
+	// this should check whether /cdwasha/connectdirect/incoming/EDO_DirectDebitResponse/*SAP.LEG file exists
+	// If the file has not been recieved
+	//			Change: operations>interfaces EDO_POSTING_REQ to inactive  > save
+	//					operations>apply changes> interface
+	//			After file has been recieved
+	//					operations> Tasks > New day Activities  > generate posting req for EDO > EDO_NEW > execute
+	logNow()
+	fmt.Println("edoTrackingFileSAPLEG\n")
+	defaultFormat := "2006-01-02"
 
+	today := time.Now().Format(defaultFormat)
+
+	command := "wc -l /cdwasha/connectdirect/incoming/EDO_DirectDebitResponse/"+today+"*ACDEBIT.RESPONSE.LEG.SAP*"
+
+
+
+	fmt.Println( command)
+	remote.RemoteSsh(command)
+	output, err := remote.RemoteSsh(command)
+	if err != nil {
+		fmt.Println("error-recieved\noutput:",output)
+		fmt.Println("error:",err.Error())
+		return
+	}
+	fmt.Println(output)
+	outputSlice := strings.Split(output, " ")
+	linecount,_ := strconv.Atoi(outputSlice[0])
+	records := linecount - 2
+	trackedFromEDO = int64(records)
+	fmt.Printf("Tracking file recived from EDO contains %d records \n", trackedFromEDO)
+	fmt.Println("\nedoTrackingFileSAPLEG --end\n")
+
+
+
+}
 func trackingTransactions() {
+
+	//
+
 	db = database.NewConnection()
 	defer db.Close()
 	logNow()
@@ -348,8 +397,53 @@ func edoResponseSAP() {
 	fmt.Println(output)
 	fmt.Println("EdoResponseSAP --end\n")
 }
+func allStatuses() {
+	db = database.NewConnection()
+	defer db.Close()
+	logNow()
 
-func sendmail() {}
+	days := "'"  + day0Date + "','"+ day1Date +"'"
+
+	query := `SELECT
+	    p_dbt_vd datum,
+		p_msg_sts status,
+		p_msg_type msg_type,
+		COUNT(*) transactions
+	FROM
+	gpp_sp.minf
+	WHERE
+	P_DBT_VD in (` + days +`)
+	and p_msg_type = 'Pacs_003'
+
+	GROUP BY
+	p_dbt_vd,
+		p_msg_sts ,
+		p_msg_type
+	ORDER BY
+	p_dbt_vd DESC`
+
+
+	//fmt.Println(" \n\n", query)
+	fmt.Println("\n")
+
+	rows, err := db.Query(query)
+	if err != nil {
+		log.Print(err.Error())
+	}
+
+	for rows.Next() {
+		var datum string
+		var status string
+		var msg_type string
+		var transactions int64
+
+		rows.Scan(&datum , &status, &msg_type,&transactions)
+
+		fmt.Printf("%-10s  -  %-20s  -  %-10s  -  %5d \n", datum[:10] , status, msg_type,transactions)
+	}
+
+}
+
 
 func sendtelegram() {}
 
