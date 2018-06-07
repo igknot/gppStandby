@@ -16,37 +16,42 @@ import (
 
 var db *sql.DB
 var day0Date, day1Date, xxxDate, za1Date string
-
+var statusXxxDate, statusZa1Date, statusReleaseWarehousedPayments, statusGenerateEDOfile string
+var statusEdoResponseSAP, statusEdoResponseLEG, statusEdoResponseLEGSAP string
 var day1_WAITSCHEDSUBBATCH, day0_SCHEDULE, day1_MP_WAIT, day0_NightTrackingFile, day1_edoPosting, day1_edoPostingArchived, day1_sapResponse, day1_legacyResponse int64
 
 func main() {
-	defaultFormat := "02/Jan/2006"
-	day1Date = time.Now().AddDate(0, 0, 1).Format(defaultFormat)
-	day0Date = time.Now().Format(defaultFormat)
 
-	//edoFilesOutGoing()
-	//edoFilesOutGoingArchived()
-	//edoTrackingFileSAPLEG() //00:15
+	reset()
+	setDates()
 
-	//getSCHEDULEcount()
-	//getWAITSCHEDSUBBATCHcount()
-	//getMPWAITcount()
-
+	//buildMailMessage()
 	//return
+	////day1Date = time.Now().Format(defaultFormat)
 	//
+	////edoFilesOutGoing()
+	////edoFilesOutGoingArchived()
+	////edoTrackingFileSAPLEG() //00:15
+	//
+	////getSCHEDULEcount()
+	////getWAITSCHEDSUBBATCHcount()
+	////getMPWAITcount()
+	//
+	////return
+	////
 	//
 
 	logNow()
-	db = database.NewConnection()
-	defer db.Close()
-	reset()
+
 	//allchecks()
 
 	scheduler := gocron.NewScheduler()
 	scheduler.Every(10).Minutes().Do(allStatuses)
 
+	scheduler.Every(1).Day().At("23:28").Do(reset)
+
 	//1 ZA date rollover 23:32
-	scheduler.Every(1).Day().At("23:40").Do(getRolloverdate, "***")
+	scheduler.Every(1).Day().At("23:33").Do(getRolloverdate, "***")
 
 	//2 verify that tracknig file has been recieved
 	scheduler.Every(1).Day().At("00:15").Do(edoTrackingFileSAPLEG)
@@ -75,11 +80,27 @@ func main() {
 	scheduler.Every(1).Day().At("01:28").Do(edoResponseSAP)
 	scheduler.Every(1).Day().At("01:28").Do(edoResponseLEG)
 	//9 edoResponse anytime before 01:30 or 02:30 send mail to rcop if they are not there
-	scheduler.Every(1).Day().At("02:00").Do(edoResponseSAP)
-	scheduler.Every(1).Day().At("02:00").Do(edoResponseLEG)
+	scheduler.Every(1).Day().At("02:07").Do(edoResponseSAP)
+	scheduler.Every(1).Day().At("02:07").Do(edoResponseLEG)
 
 	<-scheduler.Start()
 
+}
+
+func setDates() {
+	defaultFormat := "02/Jan/2006"
+	//Mon Jan 2 15:04:05 MST 2006
+	timeFormat := "1504"
+	nou := time.Now().Format(timeFormat)
+	nouInt, _ := strconv.Atoi((nou))
+	if nouInt > 2320 {
+		day1Date = time.Now().AddDate(0, 0, 1).Format(defaultFormat)
+		day0Date = time.Now().Format(defaultFormat)
+	} else {
+
+		day0Date = time.Now().AddDate(0, 0, -1).Format(defaultFormat)
+		day1Date = time.Now().Format(defaultFormat)
+	}
 }
 
 func logNow() {
@@ -109,6 +130,15 @@ func allchecks() {
 
 func reset() {
 	logNow()
+	fmt.Println("reset()")
+
+	day0Date, day1Date, xxxDate, za1Date = "", "", "", ""
+	statusXxxDate, statusZa1Date, statusReleaseWarehousedPayments, statusGenerateEDOfile = "unset", "unset", "unset", "unset"
+	day1_WAITSCHEDSUBBATCH, day0_SCHEDULE, day1_MP_WAIT, day0_NightTrackingFile = 0, 0, 0, 0
+	day1_edoPosting, day1_edoPostingArchived, day1_sapResponse, day1_legacyResponse = 0, 0, 0, 0
+	statusEdoResponseSAP, statusEdoResponseLEG, statusEdoResponseLEGSAP = "Not received", "Not received", "Not received"
+
+	setDates()
 
 }
 
@@ -137,18 +167,21 @@ func getRolloverdate(office string) {
 		if office == "***" {
 			xxxDate = bsnessdate[:10]
 			if bsnessdate[:10] != tomorrow {
-				message = fmt.Sprintf("Date for office *** did not roll\nExpected: %s \nFound:    %s", tomorrow, bsnessdate[:10])
-
+				message = fmt.Sprintf("Date for office global did not roll\nExpected: %s \nFound:    %s", tomorrow, xxxDate)
+				statusXxxDate = "Automic roll failed"
 			} else {
-				message = fmt.Sprintf("Date roll for office *** complete now :   %s", bsnessdate[:10])
+				message = fmt.Sprintf("BUSINESS_DATE for GLOBAL automatically rolled \n%s", xxxDate)
+				statusXxxDate = "Rolled automatically"
 			}
 		}
 		if office == "ZA1" {
 			za1Date = bsnessdate[:10]
 			if bsnessdate[:10] != today {
-				message = fmt.Sprintf("Date for office ZA1 did not roll\nExpected: %s \nFound:    %s", tomorrow, bsnessdate[:10])
+				message = fmt.Sprintf("BUSINESS_DATE for ZA1 automatically rolled \n%s", tomorrow, za1Date)
+				statusZa1Date = "Automic roll failed"
 			} else {
-				message = fmt.Sprintf("Date roll for office ZA1 complete now :   %s", bsnessdate[:10])
+				message = fmt.Sprintf("Date roll for office ZA1 complete now :   %s", za1Date)
+				statusZa1Date = "Rolled automatically"
 			}
 		}
 		fmt.Println(message)
@@ -177,7 +210,7 @@ func getWAITSCHEDSUBBATCHcount() {
 
 		rows.Scan(&transactions)
 
-		message := fmt.Sprintf("New transactions \nWAITSCHEDSUBBATCH - %s : %d ", day1Date, transactions)
+		message := fmt.Sprintf("New transactions(WAITSCHEDSUBBATCH) \n %s : %d ", day1Date, transactions)
 		day1_WAITSCHEDSUBBATCH = transactions
 		fmt.Println(message)
 		alerting.Info(message)
@@ -200,7 +233,7 @@ func edoTrackingFileSAPLEG() {
 
 	today := time.Now().Format(defaultFormat)
 
-	command := "wc -l /cdwasha/connectdirect/incoming/EDO_DirectDebitResponse/" + today + "*ACDEBIT.RESPONSE.LEG.SAP*"
+	command := "wc -l /cdwasha/connectdirect/incoming/EDO_DirectDebitResponse/archive/" + today + "*ACDEBIT.RESPONSE.LEG.SAP*"
 
 	var message string
 
@@ -213,6 +246,7 @@ func edoTrackingFileSAPLEG() {
 		if err.Error() == "Process exited with status 1" {
 			fmt.Println("No file recieved")
 			message = "Night tracking file not recieved :  "
+
 		}
 		alerting.Callout(message)
 		fmt.Println(message)
@@ -222,6 +256,7 @@ func edoTrackingFileSAPLEG() {
 	fmt.Println(output)
 	outputSlice := strings.Split(output, " ")
 	linecount, _ := strconv.Atoi(outputSlice[0])
+	statusEdoResponseLEGSAP = "Received at " + output[4:]
 	records := linecount - 2
 	day0_NightTrackingFile = int64(records)
 	message = fmt.Sprintf("Tracking file recived from EDO contains %d records \n", day0_NightTrackingFile)
@@ -255,11 +290,15 @@ func getMPWAITcount() {
 
 	}
 
-	message := fmt.Sprintf("Transactions waiting for EDO Postin \nMP_WAIT - %s : %d", day1Date, day1_MP_WAIT)
+	message := fmt.Sprintf("Transactions waiting for EDO Postin \nMP_WAIT  %s : %d", day1Date, day1_MP_WAIT)
 	if (day1_WAITSCHEDSUBBATCH + day0_SCHEDULE) != day1_MP_WAIT {
 		message = message + fmt.Sprintf("\nRemedial action needed: Expected %d  \n ", (day1_WAITSCHEDSUBBATCH+day0_SCHEDULE))
 		alerting.Callout(message)
+		statusReleaseWarehousedPayments = "failed"
+	} else {
+		statusReleaseWarehousedPayments = "Executed automatically"
 	}
+	//Executed automatically
 
 	fmt.Println(message)
 	alerting.Info(message)
@@ -288,7 +327,7 @@ func getSCHEDULEcount() {
 
 	}
 
-	message := fmt.Sprintf("Tracking Transactions \nSCHEDULE - %s : %d ", day0Date, day0_SCHEDULE)
+	message := fmt.Sprintf("Tracking Transactions(SCHEDULE) \n%s : %d ", day0Date, day0_SCHEDULE)
 
 	fmt.Println(message)
 	alerting.Info(message)
@@ -381,11 +420,15 @@ func edoFilesOutGoingArchived() {
 func edoResponseLEG() {
 	logNow()
 	fmt.Println("EdoResponseLEG\n")
+	if statusEdoResponseLEG != "Not received" {
+		fmt.Println("Already " + statusEdoResponseLEG)
+		return
+	}
 	defaultFormat := "2006-01-02"
 
 	today := time.Now().Format(defaultFormat)
 
-	command := "wc -l /cdwasha/connectdirect/incoming/EDO_DirectDebitResponse/archive/" + today + "*ACDEBIT.RESPONSE.LEG.*"
+	command := "wc -l /cdwasha/connectdirect/incoming/EDO_DirectDebitResponse/archive/" + today + "*ACDEBIT.RESPONSE.LEG.2*"
 	message := ""
 	fmt.Println(command)
 	remote.RemoteSsh(command)
@@ -412,7 +455,7 @@ func edoResponseLEG() {
 		return
 	}
 	records := linecount - 2
-
+	statusEdoResponseLEG = "Received at " + output[4:]
 	day1_legacyResponse = int64(records)
 	message = fmt.Sprintf("Leagacy Resaponse file contains %d records \n", day1_legacyResponse)
 
@@ -425,12 +468,17 @@ func edoResponseLEG() {
 
 func edoResponseSAP() {
 	logNow()
+	fmt.Println("EdoResponseSAP\n")
+	if statusEdoResponseSAP != "Not received" {
+		fmt.Println("Already " + statusEdoResponseSAP)
+		return
+	}
 	defaultFormat := "2006-01-02"
 
 	today := time.Now().Format(defaultFormat)
 
 	command := "wc -l /cdwasha/connectdirect/incoming/EDO_DirectDebitResponse/archive/" + today + "*ACDEBIT.RESPONSE.SAP.*"
-	fmt.Println("EdoResponseSAP\n", command)
+	fmt.Println(command)
 	var message string
 	output, err := remote.RemoteSsh(command)
 	///
@@ -455,13 +503,12 @@ func edoResponseSAP() {
 		return
 	}
 	records := linecount - 2
-
+	statusEdoResponseSAP = "Received at " + output[4:]
 	day1_sapResponse = int64(records)
 	message = fmt.Sprintf("SAP Response file contains %d records \n", day1_sapResponse)
 
 	alerting.Info(message)
 	fmt.Println(message)
-
 
 	fmt.Println("EdoResponseSAP --end\n")
 }
@@ -512,6 +559,30 @@ func allStatuses() {
 
 }
 
-func sendtelegram() {}
+func buildMailMessage() {
+	subject := "SIT Incoming Collections for monitoring " + day1Date
+
+
+	message := "Hi \n "
+	message += "\t 1. Global Office Date Roll over 23:30 –" + statusXxxDate
+	message += "\n\t 2. ZA1 Date Roll over 00:20 –" + statusZa1Date
+	message += fmt.Sprintf("\n\t 3. EDO Night Tracking responses 00:01  : %s with %d transactions ", statusEdoResponseLEGSAP, day0_NightTrackingFile)
+	message += "\n\t3. Release Warehoused Payments 00:35"
+	message += "\n\t\t\t  i.      Check automatic execution – " + statusReleaseWarehousedPayments
+	message +=
+		fmt.Sprintf("\n\tCheck Pacs.003 move to MP Wait –  :  %d new transactions processed to move to MP_WAIT; %d transactions in tracking", day1_WAITSCHEDSUBBATCH, day0_SCHEDULE)
+	message +=
+		fmt.Sprintf("\n\t4. Generate EDO file – 00:55 (Ideal) – File automatically created and sent to EDO with %d transactions", day1_edoPosting)
+	message +=
+		fmt.Sprintf("\n\t5. EDO responses: ")
+	message +=
+		fmt.Sprintf("\n\t\t For SAP     :  %s containing %d records", statusEdoResponseSAP, day1_sapResponse)
+	message +=
+		fmt.Sprintf("\n\t\t For Legacy:  %s containing %d records", statusEdoResponseLEG, day1_legacyResponse)
+	message += " \n\n Thanks \n You friendly bot"
+
+	alerting.SendMail(subject, message)
+
+}
 
 func callout() {}

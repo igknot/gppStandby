@@ -6,11 +6,14 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"log"
+	"net/smtp"
+	"time"
 )
 
 //invoke callout with
 func Callout(message string) {
-	message = "*INVOKE - CALL OUT*" + message
+	message = "*INVOKE - CALL OUT*\n" + message
 	url := os.Getenv("ALERT_ENDPOINT") + os.Getenv("CHAT_ID")
 	//log.Print(url, message)
 	resp, err := http.Post(url, "text/plain", strings.NewReader(message))
@@ -24,9 +27,9 @@ func Callout(message string) {
 
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			fmt.Println("This did not work ")
+			log.Printf("Telegram message send status:%s \nError: %s\nBody:%s",status,err.Error(),body)
 		}
-		fmt.Println(status, body)
+		log.Print("Telegram message send status:",status)
 	}
 
 }
@@ -49,9 +52,56 @@ func Info(message string) {
 
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			fmt.Println("This did not work ")
+			log.Printf("Telegram message send status:%s \nError: %s\nBody:%s",status,err.Error(),body)
 		}
-		fmt.Println(status, body)
+		log.Print("Telegram message send status:",status)
 	}
 
 }
+
+func SendMail(subject ,message string ) {
+	mailfrom := os.Getenv("MAILFROM")
+	if mailfrom == "" {
+		panic("MAILFROM not set")
+	}
+	mailto := os.Getenv("MAILTO")
+	if mailto == "" {
+		panic("MAILTO environment variable not set")
+	}
+	server := os.Getenv("MAILSERVER")
+	if server == "" {
+		panic("MAILSERVER environment variable not set")
+	}
+
+	c, err := smtp.Dial(server)
+	if err != nil {
+		panic(err)
+	}
+
+	c.Mail(mailfrom)
+	c.Rcpt(mailto)
+
+	data, err := c.Data()
+	if err != nil {
+		panic(err)
+	}
+	defer data.Close()
+
+	boundary := "d835e53b6b161cff115c5aaced91d1407779efa3844811da6eb831b6789b2a9a"
+	defaultFormat := "2006-01-02"
+	t := time.Now().Format(defaultFormat)
+
+	fmt.Fprintf(data, "Subject: %s %s\n", subject, t)
+	fmt.Fprintf(data, "MIME-Version: 1.0\n")
+	fmt.Fprintf(data, "Content-Type: multipart/mixed; boundary=%s\n", boundary)
+
+	fmt.Fprintf(data, "\n--%s\n", boundary)
+	fmt.Fprintf(data, "Content-Type: text/plain; charset=utf-8\n\n")
+	fmt.Fprintf(data, message,"\n")
+
+
+
+	fmt.Fprintf(data, "--%s--\n", boundary)
+	log.Println("Mail sent to " + mailto)
+}
+
