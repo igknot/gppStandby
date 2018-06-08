@@ -68,6 +68,9 @@ func main() {
 	scheduler.Every(1).Day().At("02:07").Do(edoResponseSAP)
 	scheduler.Every(1).Day().At("02:07").Do(edoResponseLEG)
 
+	scheduler.Every(1).Day().At("02:15").Do(buildMailMessage)
+
+
 	<-scheduler.Start()
 
 }

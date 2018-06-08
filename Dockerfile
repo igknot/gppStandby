@@ -18,7 +18,6 @@ RUN ln -s /oreclient_install_dir/instantclient_12_2/libclntsh.so.12.1 /usr/lib/l
 RUN ln -s /oreclient_install_dir/instantclient_12_2/libclntsh.so.12.1 /usr/lib/libclntsh.so
 RUN ln -s /oreclient_install_dir/instantclient_12_2/libocci.so.12.1 /usr/lib/libocci.dylib
 RUN ln -s /oreclient_install_dir/instantclient_12_2/libocci.so.12.1 /usr/lib/libocci.so
-WORKDIR /tmp
 
 WORKDIR /go/src/github.com/igknot/
 RUN git -c http.sslVerify=false clone -v https://github.com/igknot/gppStandby.git
@@ -61,6 +60,7 @@ ADD SSH_KEY SSH_KEY
 
 ENV PKG_CONFIG_PATH "/oreclient_install_dir/instantclient_12_2"
 ENV LD_LIBRARY_PATH "/oreclient_install_dir/instantclient_12_2"
+
 RUN rm -f /oreclient_install_dir/instant*.zip
 RUN rm -fr /var/lib/apt/lists
 ENTRYPOINT /go/bin/gppStandby
