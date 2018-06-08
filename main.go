@@ -22,28 +22,15 @@ var day1_WAITSCHEDSUBBATCH, day0_SCHEDULE, day1_MP_WAIT, day0_NightTrackingFile,
 
 func main() {
 
-	reset()
-	setDates()
+	reset() // contains set date
 
-	//buildMailMessage()
-	//return
-	////day1Date = time.Now().Format(defaultFormat)
-	//
-	////edoFilesOutGoing()
-	////edoFilesOutGoingArchived()
-	////edoTrackingFileSAPLEG() //00:15
-	//
-	////getSCHEDULEcount()
-	////getWAITSCHEDSUBBATCHcount()
-	////getMPWAITcount()
-	//
-	////return
-	////
-	//
+	testchecks()
+	return
+
 
 	logNow()
 
-	//allchecks()
+
 
 	scheduler := gocron.NewScheduler()
 	scheduler.Every(10).Minutes().Do(allStatuses)
@@ -110,21 +97,24 @@ func logNow() {
 
 }
 
-func allchecks() {
+func testchecks() {
 
 	logNow()
 
 	//23:31 and 00:21
-	getRolloverdate("ZA1")
-	getRolloverdate("***")
-	getWAITSCHEDSUBBATCHcount()
-	getMPWAITcount()
-	getSCHEDULEcount()
-	//newAndTracked()
+	//getRolloverdate("ZA1")
+	//getRolloverdate("***")
+	//getWAITSCHEDSUBBATCHcount()
+	edoTrackingFileSAPLEG()
+	//getMPWAITcount()
+	//getSCHEDULEcount()
+	//
 	edoFilesOutGoing() //00:57
-	//edoFileArchived()  //01:01
-	edoResponseSAP() //anytime before 01:30 or 02:30 send mail to rcop if they are not there
-	edoResponseLEG()
+	edoFilesOutGoingArchived()
+	////edoFileArchived()  //01:01
+	//edoResponseSAP() //anytime before 01:30 or 02:30 send mail to rcop if they are not there
+	//edoResponseLEG()
+	//buildMailMessage()
 
 }
 
@@ -256,7 +246,12 @@ func edoTrackingFileSAPLEG() {
 	fmt.Println(output)
 	outputSlice := strings.Split(output, " ")
 	linecount, _ := strconv.Atoi(outputSlice[0])
-	statusEdoResponseLEGSAP = "Received at " + output[4:]
+
+	outputSlice = strings.Split(output, ".")
+	recieved := outputSlice[len(outputSlice)-1]
+	recievedat := recieved[0:2] + ":" + recieved[2:4]  + ":" + recieved[4:6]
+	statusEdoResponseLEGSAP = "Received at " + recievedat
+	fmt.Println("statusEdoResponseLEGSAP "  , statusEdoResponseLEGSAP)
 	records := linecount - 2
 	day0_NightTrackingFile = int64(records)
 	message = fmt.Sprintf("Tracking file recived from EDO contains %d records \n", day0_NightTrackingFile)
@@ -290,7 +285,7 @@ func getMPWAITcount() {
 
 	}
 
-	message := fmt.Sprintf("Transactions waiting for EDO Postin \nMP_WAIT  %s : %d", day1Date, day1_MP_WAIT)
+	message := fmt.Sprintf("Transactions waiting for EDO Postin \nMP-WAIT  %s : %d", day1Date, day1_MP_WAIT)
 	if (day1_WAITSCHEDSUBBATCH + day0_SCHEDULE) != day1_MP_WAIT {
 		message = message + fmt.Sprintf("\nRemedial action needed: Expected %d  \n ", (day1_WAITSCHEDSUBBATCH+day0_SCHEDULE))
 		alerting.Callout(message)
@@ -357,16 +352,17 @@ func edoFilesOutGoing() {
 	outputSlice := strings.Split(output, " ")
 	linecount, _ := strconv.Atoi(outputSlice[0])
 	if linecount == 0 {
-		message = "Tracking file not found in /cdwasha/connectdirect/outgoing/EDO_DirectDebitRequest "
+		message = "Outgoing EDO file not found in /cdwasha/connectdirect/outgoing/EDO-DirectDebitRequest "
 		alerting.Callout(message)
 		return
 	}
 	records := linecount - 2
 	day1_edoPosting = int64(records)
-	message = fmt.Sprintf("Tracking file recived from EDO contains %d records \n", day1_edoPosting)
+	message = fmt.Sprintf("Outgoing EDO file contains %d records \n", day1_edoPosting)
 	if day1_edoPosting != day1_MP_WAIT {
 		message += fmt.Sprintf("\nExpected %d ", day1_MP_WAIT)
 		alerting.Callout(message)
+		fmt.Println(message)
 	} else {
 		alerting.Info(message)
 		fmt.Println(message)
@@ -398,14 +394,14 @@ func edoFilesOutGoingArchived() {
 	outputSlice := strings.Split(output, " ")
 	linecount, _ := strconv.Atoi(outputSlice[0])
 	if linecount == 0 {
-		message = "EDO_POSTING file not found in /cdwasha/connectdirect/outgoing/EDO_DirectDebitRequest/archive "
+		message = "EDO_POSTING file not found in /cdwasha/connectdirect/outgoing/EDO-DirectDebitRequest/archive "
 		alerting.Callout(message)
 		return
 	}
 	records := linecount - 2
 
 	day1_edoPostingArchived = int64(records)
-	message = fmt.Sprintf("Archived EDO_POSTING file contains %d records \n", day1_edoPostingArchived)
+	message = fmt.Sprintf("Archived EDO-POSTING file contains %d records \n", day1_edoPostingArchived)
 	if day1_edoPosting != day1_MP_WAIT {
 		message += fmt.Sprintf("\nExpected %d ", day1_MP_WAIT)
 		alerting.Callout(message)
@@ -450,14 +446,17 @@ func edoResponseLEG() {
 	outputSlice := strings.Split(output, " ")
 	linecount, _ := strconv.Atoi(outputSlice[0])
 	if linecount == 0 {
-		message = "EDO ResponseLEG file not found in /cdwasha/connectdirect/incoming/EDO_DirectDebitResponse/archive/"
+		message = "EDO ResponseLEG file not found in /cdwasha/connectdirect/incoming/EDO-DirectDebitResponse/archive/"
 		alerting.Callout(message)
 		return
 	}
 	records := linecount - 2
-	statusEdoResponseLEG = "Received at " + output[4:]
+	outputSlice = strings.Split(output, ".")
+	recieved := outputSlice[len(outputSlice)-1]
+	recievedat := recieved[0:2] + ":" + recieved[2:4]  + ":" + recieved[4:6]
+	statusEdoResponseLEG = "Received at " +recievedat
 	day1_legacyResponse = int64(records)
-	message = fmt.Sprintf("Leagacy Resaponse file contains %d records \n", day1_legacyResponse)
+	message = fmt.Sprintf("Legacy Response file contains %d records \n", day1_legacyResponse)
 
 	alerting.Info(message)
 	fmt.Println(message)
@@ -498,12 +497,15 @@ func edoResponseSAP() {
 	outputSlice := strings.Split(output, " ")
 	linecount, _ := strconv.Atoi(outputSlice[0])
 	if linecount == 0 {
-		message = "EDO Response SAP file not found in /cdwasha/connectdirect/incoming/EDO_DirectDebitResponse/archive/"
+		message = "EDO Response SAP file not found in /cdwasha/connectdirect/incoming/EDO-DirectDebitResponse/archive/"
 		alerting.Callout(message)
 		return
 	}
 	records := linecount - 2
-	statusEdoResponseSAP = "Received at " + output[4:]
+	outputSlice = strings.Split(output, ".")
+	recieved := outputSlice[len(outputSlice)-1]
+	recievedat := recieved[0:2] + ":" + recieved[2:4]  + ":" + recieved[4:6]
+	statusEdoResponseSAP = "Received at " + recievedat
 	day1_sapResponse = int64(records)
 	message = fmt.Sprintf("SAP Response file contains %d records \n", day1_sapResponse)
 
@@ -585,4 +587,4 @@ func buildMailMessage() {
 
 }
 
-func callout() {}
+

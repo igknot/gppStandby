@@ -9,28 +9,14 @@ import (
 	"log"
 	"net/smtp"
 	"time"
+	"regexp"
 )
 
 //invoke callout with
 func Callout(message string) {
 	message = "*INVOKE - CALL OUT*\n" + message
-	url := os.Getenv("ALERT_ENDPOINT") + os.Getenv("CHAT_ID")
-	//log.Print(url, message)
-	resp, err := http.Post(url, "text/plain", strings.NewReader(message))
+	Info(message)
 
-	if err != nil {
-		fmt.Println("Call to hal did not work")
-		return
-	} else {
-		defer resp.Body.Close()
-		status := resp.Status
-
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Printf("Telegram message send status:%s \nError: %s\nBody:%s",status,err.Error(),body)
-		}
-		log.Print("Telegram message send status:",status)
-	}
 
 }
 //send telegram
@@ -40,7 +26,14 @@ func Callout(message string) {
 func Info(message string) {
 
 	url := os.Getenv("ALERT_ENDPOINT") + os.Getenv("CHAT_ID")
-	//log.Print(url, message)
+	 // clear special characters from message - It seems to cause hal displeasure
+	reg, err := regexp.Compile("[^a-zA-Z0-9- :\n\t/]+")
+	if err != nil {
+		log.Fatal(err)
+	}
+	message = reg.ReplaceAllString(message, "")
+
+
 	resp, err := http.Post(url, "text/plain", strings.NewReader(message))
 
 	if err != nil {
@@ -101,7 +94,7 @@ func SendMail(subject ,message string ) {
 
 
 
-	fmt.Fprintf(data, "--%s--\n", boundary)
+	//fmt.Fprintf(data, "--%s--\n", boundary)
 	log.Println("Mail sent to " + mailto)
 }
 

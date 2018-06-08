@@ -4,24 +4,20 @@ import (
 
 	"github.com/igknot/gppStandby/alerting"
 
-	"net/http"
-	"strings"
 	"fmt"
-	"io/ioutil"
 	"time"
 	"strconv"
 )
 
 func main()  {
-	//telegramtests()
-	timetests()
+	telegramtests()
+	//timetests()
 
 
 }
 
-func mailtest(){
-	alerting.SendMail()
-}
+
+
 func timetests(){
 //Mon Jan 2 15:04:05 MST 2006
 	timeFormat := "1504"
@@ -41,25 +37,31 @@ func telegramtests() {
 	//	"```block_language " +
 	//" pre-formatted fixed-width code block " +
 	// " ```"
-	message := `Date roll for office   complete now :   2018-06-07`
-	//
-	//url := os.Getenv("ALERT_ENDPOINT") + os.Getenv("CHAT_ID")
-	//log.Print(url, message)
-	resp, err := http.Post("http://go2hal.legion.sbsa.local/api/alert/3487598672", "text/plain", strings.NewReader(message))
-	fmt.Println("Status : ", resp.Status)
-	if err != nil {
-		fmt.Println("Call to hal did not work ", err.Error())
-	} else {
-		defer resp.Body.Close()
-		status := resp.Status
+	//message := " Testing emoji u2705 \u2705 \n u26A0 \u26A0 "
 
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			fmt.Println("This did not work ")
-		}
-		fmt.Println(status, body)
-	}
-	alerting.Info(message)
+	//message := " S_EE  "
+	//
+	//
+	//
+	////
+	////url := os.Getenv("ALERT_ENDPOINT") + os.Getenv("CHAT_ID")
+	////log.Print(url, message)
+	//resp, err := http.Post("http://go2hal.legion.sbsa.local/api/alert/3487598672", "text/plain", strings.NewReader(message))
+	//fmt.Println("Status : ", resp.Status)
+	//if err != nil {
+	//	fmt.Println("Call to hal did not work ", err.Error())
+	//} else {
+	//	defer resp.Body.Close()
+	//	status := resp.Status
+	//
+	//	body, err := ioutil.ReadAll(resp.Body)
+	//	if err != nil {
+	//		fmt.Println("This did not work ")
+	//	}
+	//	fmt.Println(status, body)
+	//}
+	message := " Testing emoji u2705 \u2705 \n u26A0 \u26A0 "
+	alerting.Callout(message)
 }
 
 
