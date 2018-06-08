@@ -20,11 +20,13 @@ RUN ln -s /oreclient_install_dir/instantclient_12_2/libocci.so.12.1 /usr/lib/lib
 RUN ln -s /oreclient_install_dir/instantclient_12_2/libocci.so.12.1 /usr/lib/libocci.so
 
 WORKDIR /go/src/github.com/igknot/
-RUN git -c http.sslVerify=false clone -v https://gitlab.standardbank.co.za/a149651/gppreport.git
+RUN git -c http.sslVerify=false clone -v https://github.com/igknot/gppStandby.git
 
 WORKDIR /go/src/github.com/igknot/gppStandby
 
-RUN go get -d -v -insecure  ./...
+#RUN git init
+
+RUN go get  ./...
 
 RUN cp database/clientSoftware/oci8_linux.pc /oreclient_install_dir/instantclient_12_2/oci8.pc
 
