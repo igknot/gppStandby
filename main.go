@@ -24,9 +24,7 @@ func main() {
 
 	reset() // contains set date
 
-	testchecks()
-	return
-
+	alerting.Info("Starting Autoamted Standby ")
 
 	logNow()
 

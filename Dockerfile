@@ -18,12 +18,13 @@ RUN ln -s /oreclient_install_dir/instantclient_12_2/libclntsh.so.12.1 /usr/lib/l
 RUN ln -s /oreclient_install_dir/instantclient_12_2/libclntsh.so.12.1 /usr/lib/libclntsh.so
 RUN ln -s /oreclient_install_dir/instantclient_12_2/libocci.so.12.1 /usr/lib/libocci.dylib
 RUN ln -s /oreclient_install_dir/instantclient_12_2/libocci.so.12.1 /usr/lib/libocci.so
+WORKDIR /tmp
 
 WORKDIR /go/src/github.com/igknot/
 RUN git -c http.sslVerify=false clone -v https://github.com/igknot/gppStandby.git
 
 WORKDIR /go/src/github.com/igknot/gppStandby
-
+ADD database/clientSoftware/oci8_linux.pc /oreclient_install_dir/instantclient_12_2/oci8.pc
 #RUN git init
 
 RUN go get  ./...
@@ -56,13 +57,13 @@ RUN ln -s /oreclient_install_dir/instantclient_12_2/libocci.so.12.1 /usr/lib/lib
 COPY --from=0 /go/src/github.com/igknot/gppStandby/database/clientSoftware/oci8_linux.pc /oreclient_install_dir/instantclient_12_2/oci8.pc
 WORKDIR /go/bin/
 COPY --from=0 /go/bin/ .
-
+ADD SSH_KEY SSH_KEY
 
 ENV PKG_CONFIG_PATH "/oreclient_install_dir/instantclient_12_2"
 ENV LD_LIBRARY_PATH "/oreclient_install_dir/instantclient_12_2"
 RUN rm -f /oreclient_install_dir/instant*.zip
 RUN rm -fr /var/lib/apt/lists
-ENTRYPOINT /go/bin/gppreport
+ENTRYPOINT /go/bin/gppStandby
 
-
+ADD SSH_KEY SSH_KEY
 
