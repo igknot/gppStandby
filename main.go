@@ -24,9 +24,10 @@ func main() {
 
 	reset() // contains set date
 
-	alerting.Info("Starting Autoamted Standby ")
+	alerting.Info("Starting Automated Standby v18060957")
 
 	logNow()
+	testchecks()
 
 
 
@@ -101,22 +102,22 @@ func logNow() {
 func testchecks() {
 
 	logNow()
-
+	log.Println("testchecks start")
 	//23:31 and 00:21
 	//getRolloverdate("ZA1")
 	//getRolloverdate("***")
 	//getWAITSCHEDSUBBATCHcount()
-	edoTrackingFileSAPLEG()
+	//edoTrackingFileSAPLEG()
 	//getMPWAITcount()
 	//getSCHEDULEcount()
 	//
-	edoFilesOutGoing() //00:57
+	//edoFilesOutGoing() //00:57
 	edoFilesOutGoingArchived()
 	////edoFileArchived()  //01:01
-	//edoResponseSAP() //anytime before 01:30 or 02:30 send mail to rcop if they are not there
-	//edoResponseLEG()
-	//buildMailMessage()
-
+	edoResponseSAP() //anytime before 01:30 or 02:30 send mail to rcop if they are not there
+	edoResponseLEG()
+	buildMailMessage()
+	log.Println("testchecks end")
 }
 
 func reset() {
@@ -457,7 +458,7 @@ func edoResponseLEG() {
 	recievedat := recieved[0:2] + ":" + recieved[2:4]  + ":" + recieved[4:6]
 	statusEdoResponseLEG = "Received at " +recievedat
 	day1_legacyResponse = int64(records)
-	message = fmt.Sprintf("Legacy Response file contains %d records \n", day1_legacyResponse)
+	message = fmt.Sprintf("Legacy Response file contains %d records \n%s", day1_legacyResponse,statusEdoResponseLEG)
 
 	alerting.Info(message)
 	fmt.Println(message)
@@ -508,7 +509,7 @@ func edoResponseSAP() {
 	recievedat := recieved[0:2] + ":" + recieved[2:4]  + ":" + recieved[4:6]
 	statusEdoResponseSAP = "Received at " + recievedat
 	day1_sapResponse = int64(records)
-	message = fmt.Sprintf("SAP Response file contains %d records \n", day1_sapResponse)
+	message = fmt.Sprintf("SAP Response file contains %d records \n%s", day1_sapResponse, statusEdoResponseSAP)
 
 	alerting.Info(message)
 	fmt.Println(message)
@@ -582,7 +583,7 @@ func buildMailMessage() {
 		fmt.Sprintf("\n\t\t For SAP     :  %s containing %d records", statusEdoResponseSAP, day1_sapResponse)
 	message +=
 		fmt.Sprintf("\n\t\t For Legacy:  %s containing %d records", statusEdoResponseLEG, day1_legacyResponse)
-	message += " \n\n Thanks \n You friendly bot"
+	message += " \n\n Thanks \n Your friendly bot"
 
 	alerting.SendMail(subject, message)
 

@@ -24,13 +24,15 @@ func Callout(message string) {
 //send mail
 
 func Info(message string) {
-
+	defaultFormat := "2006-01-02 15:04"
+	infoTime := time.Now().Format(defaultFormat)
 	url := os.Getenv("ALERT_ENDPOINT") + os.Getenv("CHAT_ID")
 	 // clear special characters from message - It seems to cause hal displeasure
 	reg, err := regexp.Compile("[^a-zA-Z0-9- :\n\t/]+")
 	if err != nil {
 		log.Fatal(err)
 	}
+	message = infoTime +"\n"+ message
 	message = reg.ReplaceAllString(message, "")
 
 
@@ -80,15 +82,15 @@ func SendMail(subject ,message string ) {
 	}
 	defer data.Close()
 
-	boundary := "d835e53b6b161cff115c5aaced91d1407779efa3844811da6eb831b6789b2a9a"
+	//boundary := "d835e53b6b161cff115c5aaced91d1407779efa3844811da6eb831b6789b2a9a"
 	defaultFormat := "2006-01-02"
 	t := time.Now().Format(defaultFormat)
 
 	fmt.Fprintf(data, "Subject: %s %s\n", subject, t)
 	fmt.Fprintf(data, "MIME-Version: 1.0\n")
-	fmt.Fprintf(data, "Content-Type: multipart/mixed; boundary=%s\n", boundary)
-
-	fmt.Fprintf(data, "\n--%s\n", boundary)
+	//fmt.Fprintf(data, "Content-Type: multipart/mixed; boundary=%s\n", boundary)
+	//
+	//fmt.Fprintf(data, "\n--%s\n", boundary)
 	fmt.Fprintf(data, "Content-Type: text/plain; charset=utf-8\n\n")
 	fmt.Fprintf(data, message,"\n")
 

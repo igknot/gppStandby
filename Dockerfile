@@ -21,7 +21,7 @@ RUN ln -s /oreclient_install_dir/instantclient_12_2/libocci.so.12.1 /usr/lib/lib
 
 WORKDIR /go/src/github.com/igknot/
 RUN git -c http.sslVerify=false clone -v https://github.com/igknot/gppStandby.git
-
+WORKDIR /tmp
 WORKDIR /go/src/github.com/igknot/gppStandby
 ADD database/clientSoftware/oci8_linux.pc /oreclient_install_dir/instantclient_12_2/oci8.pc
 #RUN git init
@@ -54,7 +54,11 @@ RUN ln -s /oreclient_install_dir/instantclient_12_2/libocci.so.12.1 /usr/lib/lib
 RUN ln -s /oreclient_install_dir/instantclient_12_2/libocci.so.12.1 /usr/lib/libocci.so
 
 COPY --from=0 /go/src/github.com/igknot/gppStandby/database/clientSoftware/oci8_linux.pc /oreclient_install_dir/instantclient_12_2/oci8.pc
+WORKDIR /tmp
 WORKDIR /go/bin/
+WORKDIR /tmp
+WORKDIR /go/bin/
+
 COPY --from=0 /go/bin/ .
 ADD SSH_KEY SSH_KEY
 
