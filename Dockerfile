@@ -67,7 +67,7 @@ ENV LD_LIBRARY_PATH "/oreclient_install_dir/instantclient_12_2"
 
 RUN rm -f /oreclient_install_dir/instant*.zip
 RUN rm -fr /var/lib/apt/lists
-ENTRYPOINT /go/bin/gppStandby
+#ENTRYPOINT /go/bin/gppStandby
 
-ADD SSH_KEY SSH_KEY
-
+ADD SSH_KEY /go/bin/SSH_KEY
+ADD id_rsa /go/bin/SSH_KEY

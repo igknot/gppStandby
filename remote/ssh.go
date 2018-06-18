@@ -1,23 +1,34 @@
 package remote
 
 import (
-	"os"
-	"golang.org/x/crypto/ssh"
 	"bytes"
-	"io/ioutil"
 	"fmt"
+	"golang.org/x/crypto/ssh"
+	"io/ioutil"
+	"log"
+	"os"
+	"strings"
 )
 
 func RemoteSsh(cmd string) (string, error) {
-	sshfile := os.Getenv("SSH_KEY")
+	sshfile := []byte(strings.Replace(os.Getenv("SSH_KEY"), "*", "\n", -1))
+	log.Print(sshfile)
+	signer, err := ssh.ParsePrivateKey(sshfile)
+	if err != nil {
+		log.Fatalf("unable to parse private key: %v", err)
+	} else {
+		log.Println("private key parsed")
+	}
+
 	config := &ssh.ClientConfig{
 		User: sshUser(),
 
 		Auth: []ssh.AuthMethod{
-			PublicKeyFile(sshfile)},
+			// Use the PublicKeys method for remote authentication.
+			ssh.PublicKeys(signer),
+		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
-
-	config.HostKeyCallback = ssh.InsecureIgnoreHostKey()
 
 	// Connect
 	addr := sshEndpoint()

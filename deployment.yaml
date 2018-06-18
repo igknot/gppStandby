@@ -18,6 +18,7 @@ spec:
         name: gppstandby
         securityContext:
           privileged: false
+
         env:
         - name : ORACLE_USER
           valueFrom:
@@ -81,8 +82,8 @@ spec:
 
         - name : SSH_KEY
           valueFrom:
-            configMapKeyRef:
-              name: gppstandby-config-map
+            secretKeyRef:
+              name: my-secret
               key: SSH_KEY
 
         - name : ALERT_ENDPOINT
