@@ -24,7 +24,7 @@ func main() {
 
 	reset() // contains set date
 
-	alerting.Info("Starting Automated Standby v18060957")
+	alerting.Info("Starting Automated Standby v18061957")
 
 	logNow()
 	testchecks()
