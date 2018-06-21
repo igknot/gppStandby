@@ -3,7 +3,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: gppstandby
-  namespace: gppstandby-sit
+
 spec:
   replicas: 1
   template:
@@ -13,7 +13,10 @@ spec:
         name: gppstandby
     spec:
       containers:
-      - image: harbor.cloudy.standardbank.co.za/gppstandby/gppstandby:2
+      - image: harbor.cloudy.standardbank.co.za/gppstandby/gppstandby:5
+ #     - image: gppstandby
+        #imagePullPolicy: Never
+        #imagePullPolicy: Always
         imagePullPolicy: IfNotPresent
         name: gppstandby
         securityContext:

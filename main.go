@@ -24,7 +24,7 @@ func main() {
 
 	reset() // contains set date
 
-	alerting.Info("Starting Automated Standby v18061957")
+	alerting.Info("Starting Automated Standby v18062110:31")
 
 	logNow()
 	testchecks()
@@ -54,7 +54,7 @@ func main() {
 	scheduler.Every(1).Day().At("00:32").Do(getSCHEDULEcount)
 
 	//6 Tracking  transactions
-	scheduler.Every(1).Day().At("00:37").Do(getMPWAITcount)
+	scheduler.Every(1).Day().At("00:52").Do(getMPWAITcount)
 
 	//7 Check edo files 00:57 + 2minutes for safety
 	scheduler.Every(1).Day().At("00:57").Do(edoFilesOutGoing)

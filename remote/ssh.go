@@ -11,8 +11,15 @@ import (
 )
 
 func RemoteSsh(cmd string) (string, error) {
+	//this is used when running in kubernetes using a secret base64
 	sshfile := []byte(strings.Replace(os.Getenv("SSH_KEY"), "*", "\n", -1))
-	log.Print(sshfile)
+
+	//this is used when running local using env base64 ssh key
+	//decoded, err := base64.StdEncoding.DecodeString(strings.Replace(os.Getenv("SSH_KEY"), "*", "\n", -1))
+	//log.Print(decoded)
+	//sshfile :=  []byte(decoded)
+
+
 	signer, err := ssh.ParsePrivateKey(sshfile)
 	if err != nil {
 		log.Fatalf("unable to parse private key: %v", err)
@@ -24,7 +31,7 @@ func RemoteSsh(cmd string) (string, error) {
 		User: sshUser(),
 
 		Auth: []ssh.AuthMethod{
-			// Use the PublicKeys method for remote authentication.
+
 			ssh.PublicKeys(signer),
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),

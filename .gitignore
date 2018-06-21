@@ -14,3 +14,5 @@
 
 env.list
 SSH_KEY
+my-secret.yaml
+secrets.yaml
