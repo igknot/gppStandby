@@ -59,9 +59,14 @@ func SendMail(subject ,message string ) {
 	if mailfrom == "" {
 		panic("MAILFROM not set")
 	}
-	mailto := os.Getenv("MAILTO")
-	if mailto == "" {
+	to := strings.Split(os.Getenv("MAILTO"),",")
+	var mailto string
+	if len(to) == 0 {
 		panic("MAILTO environment variable not set")
+	} else{
+
+		fmt.Println("mailto: ", to)
+
 	}
 	server := os.Getenv("MAILSERVER")
 	if server == "" {
@@ -74,7 +79,10 @@ func SendMail(subject ,message string ) {
 	}
 
 	c.Mail(mailfrom)
-	c.Rcpt(mailto)
+	for _, t := range to {
+		fmt.Println("recipient:",t)
+		c.Rcpt(t)
+	}
 
 	data, err := c.Data()
 	if err != nil {
@@ -82,21 +90,21 @@ func SendMail(subject ,message string ) {
 	}
 	defer data.Close()
 
-	//boundary := "d835e53b6b161cff115c5aaced91d1407779efa3844811da6eb831b6789b2a9a"
+
 	defaultFormat := "2006-01-02"
 	t := time.Now().Format(defaultFormat)
 
 	fmt.Fprintf(data, "Subject: %s %s\n", subject, t)
 	fmt.Fprintf(data, "MIME-Version: 1.0\n")
-	//fmt.Fprintf(data, "Content-Type: multipart/mixed; boundary=%s\n", boundary)
-	//
-	//fmt.Fprintf(data, "\n--%s\n", boundary)
+
 	fmt.Fprintf(data, "Content-Type: text/plain; charset=utf-8\n\n")
 	fmt.Fprintf(data, message,"\n")
 
 
 
-	//fmt.Fprintf(data, "--%s--\n", boundary)
+
 	log.Println("Mail sent to " + mailto)
+
+
 }
 

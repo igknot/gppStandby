@@ -24,15 +24,16 @@ func main() {
 
 	reset() // contains set date
 
-	alerting.Info("Starting Automated Standby v18062110:31")
+	alerting.Info("Starting Automated Standby v18062614:31")
 
 	logNow()
 	testchecks()
 
 
 
+
 	scheduler := gocron.NewScheduler()
-	scheduler.Every(10).Minutes().Do(allStatuses)
+	//scheduler.Every(10).Minutes().Do(allStatuses)
 
 	scheduler.Every(1).Day().At("23:28").Do(reset)
 
@@ -114,8 +115,8 @@ func testchecks() {
 	//edoFilesOutGoing() //00:57
 	edoFilesOutGoingArchived()
 	////edoFileArchived()  //01:01
-	edoResponseSAP() //anytime before 01:30 or 02:30 send mail to rcop if they are not there
-	edoResponseLEG()
+//	edoResponseSAP() //anytime before 01:30 or 02:30 send mail to rcop if they are not there
+//	edoResponseLEG()
 	buildMailMessage()
 	log.Println("testchecks end")
 }
@@ -568,17 +569,17 @@ func buildMailMessage() {
 
 
 	message := "Hi \n "
-	message += "\t 1. Global Office Date Roll over 23:30 –" + statusXxxDate
-	message += "\n\t 2. ZA1 Date Roll over 00:20 –" + statusZa1Date
-	message += fmt.Sprintf("\n\t 3. EDO Night Tracking responses 00:01  : %s with %d transactions ", statusEdoResponseLEGSAP, day0_NightTrackingFile)
-	message += "\n\t3. Release Warehoused Payments 00:35"
+	message += "\t 1. Global Office Date Roll over 23:30 –" + statusXxxDate + "\n"
+	message += "\t 2. ZA1 Date Roll over 00:20 –" + statusZa1Date  + "\n"
+	message += fmt.Sprintf("\t 3. EDO Night Tracking responses 00:01  : %s with %d transactions ", statusEdoResponseLEGSAP, day0_NightTrackingFile)
+	message += "\n\t 3. Release Warehoused Payments 00:35"
 	message += "\n\t\t\t  i.      Check automatic execution – " + statusReleaseWarehousedPayments
 	message +=
-		fmt.Sprintf("\n\tCheck Pacs.003 move to MP Wait –  :  %d new transactions processed to move to MP_WAIT; %d transactions in tracking", day1_WAITSCHEDSUBBATCH, day0_SCHEDULE)
+		fmt.Sprintf("\n\t\t\t ii.      Check Pacs.003 move to MP Wait –  :  %d new transactions processed to move to MP_WAIT; %d transactions in tracking", day1_WAITSCHEDSUBBATCH, day0_SCHEDULE)
 	message +=
-		fmt.Sprintf("\n\t4. Generate EDO file – 00:55 (Ideal) – File automatically created and sent to EDO with %d transactions", day1_edoPosting)
+		fmt.Sprintf("\n\t 4. Generate EDO file – 00:55 (Ideal) – File automatically created and sent to EDO with %d transactions", day1_edoPosting)
 	message +=
-		fmt.Sprintf("\n\t5. EDO responses: ")
+		fmt.Sprintf("\n\t 5. EDO responses: ")
 	message +=
 		fmt.Sprintf("\n\t\t For SAP     :  %s containing %d records", statusEdoResponseSAP, day1_sapResponse)
 	message +=
