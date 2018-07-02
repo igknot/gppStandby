@@ -1,0 +1,107 @@
+
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: gppstandby
+
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: gppstandby
+      labels:
+        name: gppstandby
+    spec:
+      containers:
+      - image: harbor.cloudy.standardbank.co.za/gppstandby/gppstandby:6
+        #imagePullPolicy: Never
+        imagePullPolicy: Always
+        #imagePullPolicy: IfNotPresent
+        name: gppstandby
+        securityContext:
+          privileged: false
+
+        env:
+        - name : ORACLE_USER
+          valueFrom:
+            configMapKeyRef:
+              name: gppstandby-config-map
+              key: ORACLE_USER
+
+        - name : ORACLE_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: gppstandby-config-map
+              key: ORACLE_PASSWORD
+
+        - name : ORACLE_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: gppstandby-config-map
+              key: ORACLE_HOST
+
+        - name : ORACLE_SERVICE
+          valueFrom:
+            configMapKeyRef:
+              name: gppstandby-config-map
+              key: ORACLE_SERVICE
+
+        - name : ORACLE_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: gppstandby-config-map
+              key: ORACLE_PORT
+
+        - name : ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: gppstandby-config-map
+              key: ENVIRONMENT
+
+        - name : MAILTO
+          valueFrom:
+            configMapKeyRef:
+              name: gppstandby-config-map
+              key: MAILTO
+
+        - name : MAILFROM
+          valueFrom:
+            configMapKeyRef:
+              name: gppstandby-config-map
+              key: MAILFROM
+
+        - name : MAILSERVER
+          valueFrom:
+            configMapKeyRef:
+              name: gppstandby-config-map
+              key: MAILSERVER
+
+        - name : SSH_USER
+          valueFrom:
+            configMapKeyRef:
+              name: gppstandby-config-map
+              key: SSH_USER
+
+        - name : SSH_KEY
+          valueFrom:
+            secretKeyRef:
+              name: my-secret
+              key: SSH_KEY
+
+        - name : ALERT_ENDPOINT
+          valueFrom:
+            configMapKeyRef:
+              name: gppstandby-config-map
+              key: ALERT_ENDPOINT
+
+        - name : CHAT_ID
+          valueFrom:
+            configMapKeyRef:
+              name: gppstandby-config-map
+              key: CHAT_ID
+
+        - name : SSH_ENDPOINT
+          valueFrom:
+            configMapKeyRef:
+              name: gppstandby-config-map
+              key: SSH_ENDPOINT

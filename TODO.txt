@@ -1,11 +1,19 @@
 ToDo
 
-3.  Persistance layer to cater for pod being killed
+3.  Persistence layer to cater for pod being killed
 4.  Hal call out.
 7.  Change edo response to ony invoke call out after 2nd check first time round only send message
+
+9.  failure folders checks
+10. Secrets
+11. Docker build simplify - dont need to rebuild the world every time
+12. go-kit
+13. refactor
+
 
 Done
 1.  Date on startup if started shortly after midnight
 2.  Email of results
-6.  Check telegram alerts sent but not recieved underscores seems to make it dissapear
+6.  Check telegram alerts sent but not received underscores seems to make it disappear
 5.  schedule Email of results
+8.  Shorten deployment file with references to individual ENV variables removed
