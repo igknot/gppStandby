@@ -55,6 +55,8 @@ func main() {
 	scheduler.Every(1).Day().At("00:32").Do(getSCHEDULEcount)
 
 	//6 Tracking  transactions
+
+	scheduler.Every(1).Day().At("00:40").Do(getMPWAITcount)
 	scheduler.Every(1).Day().At("00:52").Do(getMPWAITcount)
 
 	//7 Check edo files 00:57 + 2minutes for safety
