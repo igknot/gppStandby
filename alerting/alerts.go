@@ -10,12 +10,44 @@ import (
 	"net/smtp"
 	"time"
 	"regexp"
+	"bytes"
 )
 
 //invoke callout with
 func Callout(message string) {
 
-	message = "*INVOKE - CALL OUT*\n" + message
+	
+	reg, err := regexp.Compile("[^a-zA-Z0-9- :\n\t/]+")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	message = reg.ReplaceAllString(message, "")
+	url := os.Getenv("CALLOUT_ENDPOINT") + os.Getenv("CHAT_ID")
+	 fmt.Println("URL:>",url)
+
+
+    var jsonStr = []byte(`{"message":"Please check GPP. ` + message + `","title":"gpp callout" }`)
+
+    fmt.Printf(string(jsonStr))
+
+    req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+    req.Header.Set("Accept", "application/json")
+    req.Header.Set("Content-Type", "application/json")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    fmt.Println("response Status:", resp.Status)
+    fmt.Println("response Headers:", resp.Header)
+    body, _ := ioutil.ReadAll(resp.Body)
+    fmt.Println("response Body:", string(body))
+
+	message = "INVOKE - CALL OUT\n" + message
 	Info(message)
 
 

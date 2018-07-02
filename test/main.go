@@ -15,8 +15,14 @@ import (
 func main() {
 	//telegramtests()
 	//timetests()
-	mailtest()
+	//mailtest()
+	callouttest()
 
+
+
+}
+func callouttest(){
+	alerting.Callout("this is a test from gppstandby ")
 }
 
 func mailtest() {
