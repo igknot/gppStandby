@@ -20,3 +20,4 @@ gppstandby-config-map.yaml
 minkube.sh
 test/appdynamics.http
 .idea/*
+*secret*

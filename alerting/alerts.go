@@ -16,7 +16,7 @@ import (
 //invoke callout with
 func Callout(message string) {
 
-	
+
 	reg, err := regexp.Compile("[^a-zA-Z0-9- :\n\t/]+")
 	if err != nil {
 		log.Fatal(err)
