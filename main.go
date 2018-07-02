@@ -24,7 +24,7 @@ func main() {
 
 	reset() // contains set date
 
-	alerting.Info("Starting Automated Standby v18062614:31")
+	alerting.Info("Starting Automated Standby v20180701-1041")
 
 	logNow()
 	testchecks()
@@ -102,8 +102,8 @@ func logNow() {
 
 func testchecks() {
 
-	logNow()
-	log.Println("testchecks start")
+	//logNow()
+	//log.Println("testchecks start")
 	//23:31 and 00:21
 	//getRolloverdate("ZA1")
 	//getRolloverdate("***")
@@ -113,11 +113,11 @@ func testchecks() {
 	//getSCHEDULEcount()
 	//
 	//edoFilesOutGoing() //00:57
-	edoFilesOutGoingArchived()
+	//edoFilesOutGoingArchived()
 	////edoFileArchived()  //01:01
 //	edoResponseSAP() //anytime before 01:30 or 02:30 send mail to rcop if they are not there
-//	edoResponseLEG()
-	buildMailMessage()
+	//	edoResponseLEG()
+	//buildMailMessage()
 	log.Println("testchecks end")
 }
 

@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - image: harbor.cloudy.standardbank.co.za/gppstandby/gppstandby:6
- #     - image: gppstandby
+  #    - image: localhost:5000/gppstandby
         #imagePullPolicy: Never
         #imagePullPolicy: Always
         imagePullPolicy: IfNotPresent

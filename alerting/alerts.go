@@ -14,14 +14,13 @@ import (
 
 //invoke callout with
 func Callout(message string) {
+
 	message = "*INVOKE - CALL OUT*\n" + message
 	Info(message)
 
 
 }
-//send telegram
 
-//send mail
 
 func Info(message string) {
 	defaultFormat := "2006-01-02 15:04"
@@ -98,10 +97,7 @@ func SendMail(subject ,message string ) {
 	fmt.Fprintf(data, "MIME-Version: 1.0\n")
 
 	fmt.Fprintf(data, "Content-Type: text/plain; charset=utf-8\n\n")
-	fmt.Fprintf(data, message,"\n")
-
-
-
+	fmt.Fprintf(data, message)
 
 	log.Println("Mail sent to " + mailto)
 
