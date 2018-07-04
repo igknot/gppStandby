@@ -24,7 +24,7 @@ func main() {
 
 	reset() // contains set date
 
-	alerting.Info("Starting Automated Standby v20180701-1041")
+	alerting.Info("Starting Automated Standby v20180704-1041")
 
 	logNow()
 	testchecks()
@@ -65,10 +65,10 @@ func main() {
 
 	//9 edoResponse anytime before 01:30 or 02:30 send mail to rcop if they are not there
 	scheduler.Every(1).Day().At("01:28").Do(edoResponseSAP)
-	scheduler.Every(1).Day().At("01:28").Do(edoResponseLEG)
+	scheduler.Every(1).Day().At("01:29").Do(edoResponseLEG)
 	//9 edoResponse anytime before 01:30 or 02:30 send mail to rcop if they are not there
 	scheduler.Every(1).Day().At("02:07").Do(edoResponseSAP)
-	scheduler.Every(1).Day().At("02:07").Do(edoResponseLEG)
+	scheduler.Every(1).Day().At("02:08").Do(edoResponseLEG)
 
 	scheduler.Every(1).Day().At("02:15").Do(buildMailMessage)
 
@@ -116,7 +116,7 @@ func testchecks() {
 	//edoFilesOutGoingArchived()
 	////edoFileArchived()  //01:01
 //	edoResponseSAP() //anytime before 01:30 or 02:30 send mail to rcop if they are not there
-	//	edoResponseLEG()
+		edoResponseLEG()
 	//buildMailMessage()
 	log.Println("testchecks end")
 }
