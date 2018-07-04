@@ -41,12 +41,13 @@ func RemoteSsh(cmd string) (string, error) {
 	addr := sshEndpoint()
 	client, err := ssh.Dial("tcp", addr, config)
 	if err != nil {
-
+		log.Println("unable to connect via ssh to ", addr , err.Error())
 		return "", err
 	}
 	// Create a session. It is one session per command.
 	session, err := client.NewSession()
 	if err != nil {
+		log.Println("Unable to create ssh session", err.Error())
 		return "", err
 	}
 	defer session.Close()
@@ -54,6 +55,10 @@ func RemoteSsh(cmd string) (string, error) {
 	session.Stdout = &b // get output
 
 	err = session.Run(cmd)
+	if err != nil {
+		log.Println("Unable to execute command \n",cmd ,"\n", err.Error())
+
+	}
 
 	return b.String(), err
 }

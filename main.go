@@ -233,7 +233,7 @@ func edoTrackingFileSAPLEG() {
 	var message string
 
 	fmt.Println(command)
-	remote.RemoteSsh(command)
+	//remote.RemoteSsh(command)
 	output, err := remote.RemoteSsh(command)
 	if err != nil {
 		fmt.Println("error-recieved\noutput:", output)
@@ -432,7 +432,7 @@ func edoResponseLEG() {
 	command := "wc -l /cdwasha/connectdirect/incoming/EDO_DirectDebitResponse/archive/" + today + "*ACDEBIT.RESPONSE.LEG.2*"
 	message := ""
 	fmt.Println(command)
-	remote.RemoteSsh(command)
+	//remote.RemoteSsh(command)
 	output, err := remote.RemoteSsh(command)
 	///
 	if err != nil {
