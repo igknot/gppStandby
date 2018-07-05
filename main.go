@@ -26,14 +26,9 @@ func main() {
 
 	alerting.Info("Starting Automated Standby v20180704-1041")
 
-
-	//testchecks()
-
-
-
-
 	scheduler := gocron.NewScheduler()
-	//scheduler.Every(10).Minutes().Do(allStatuses)
+
+	scheduler.Every(15).Minutes().Do(checkFailureFolders)
 
 	scheduler.Every(1).Day().At("23:28").Do(reset)
 
@@ -106,20 +101,20 @@ func testchecks() {
 
 
 	log.Println("testchecks start")
-
-	getRolloverdate("ZA1")
-	getRolloverdate("***")
-	getWAITSCHEDSUBBATCHcount()
-	edoTrackingFileSAPLEG()
-	getMPWAITcount()
-	getSCHEDULEcount()
+	checkFailureFolders()
+	//getRolloverdate("ZA1")
+	//getRolloverdate("***")
+	//getWAITSCHEDSUBBATCHcount()
+	//edoTrackingFileSAPLEG()
+	//getMPWAITcount()
+	//getSCHEDULEcount()
+	////
+	//edoFilesOutGoing() //00:57
+	//edoFilesOutGoingArchived()
 	//
-	edoFilesOutGoing() //00:57
-	edoFilesOutGoingArchived()
-
-	edoResponseSAP() //anytime before 01:30 or 02:30 send mail to rcop if they are not there
-		edoResponseLEG()
-	buildMailMessage()
+	//edoResponseSAP() //anytime before 01:30 or 02:30 send mail to rcop if they are not there
+	//	edoResponseLEG()
+	//buildMailMessage()
 	log.Println("testchecks end")
 }
 
@@ -374,6 +369,41 @@ func edoFilesOutGoing() {
 	}
 
 }
+
+func checkFailureFolders() {
+/*
+
+/cdwasha/connectdirect/incoming/BOLPES_COLL/failure " 
+/cdwasha/connectdirect/incoming/GCE_COLL/failure
+/cdwasha/connectdirect/incoming/GCE_MNDT/failure
+/cdwasha/connectdirect/incoming/EDO_DirectDebitResponse/failure
+
+ */
+ 	command := "find /cdwasha/connectdirect/incoming/*/failure -type f -name *.xml -cmin -29"  // -ctime -22 created less than 22 days ago
+	//command := "find /cdwasha/connectdirect/outgoing/EDO_DirectDebitRequest -type f -cmin -60 -name 'EDO_POST*' -exec wc -l {} \\; "
+
+	log.Println("checkFailureFolders: ", command)
+	message := ""
+	output, err := remote.RemoteSsh(command)
+	if err != nil {
+
+		log.Println("error:", err.Error())
+		if err.Error() == "Process exited with status 1" {
+			message = "Outgoing edo file check failed "
+			log.Println(message)
+		}
+		alerting.Callout(message)
+		log.Println(message)
+		return
+	}
+
+	log.Println(output)
+	if len(output) >0 {
+		alerting.Callout("New files in failure folder")
+	}
+
+}
+
 
 func edoFilesOutGoingArchived() {
 
