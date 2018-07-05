@@ -2,22 +2,23 @@ package remote
 
 import (
 	"bytes"
-	"fmt"
+
 	"golang.org/x/crypto/ssh"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
+	"encoding/base64"
 )
 
 func RemoteSsh(cmd string) (string, error) {
 	//this is used when running in kubernetes using a secret base64
-	sshfile := []byte(strings.Replace(os.Getenv("SSH_KEY"), "*", "\n", -1))
+	//sshfile := []byte(strings.Replace(os.Getenv("SSH_KEY"), "*", "\n", -1))
 
 	//this is used when running local using env base64 ssh key
-	//decoded, err := base64.StdEncoding.DecodeString(strings.Replace(os.Getenv("SSH_KEY"), "*", "\n", -1))
+	decoded, err := base64.StdEncoding.DecodeString(strings.Replace(os.Getenv("SSH_KEY"), "*", "\n", -1))
 	//log.Print(decoded)
-	//sshfile :=  []byte(decoded)
+	sshfile :=  []byte(decoded)
 
 
 	signer, err := ssh.ParsePrivateKey(sshfile)
@@ -74,13 +75,13 @@ func sshEndpoint() string {
 func PublicKeyFile(file string) ssh.AuthMethod {
 	buffer, err := ioutil.ReadFile(file)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return nil
 	}
 
 	key, err := ssh.ParsePrivateKey(buffer)
 	if err != nil {
-		fmt.Println("Parsing failed", err.Error())
+		log.Println("Parsing failed", err.Error())
 		return nil
 	}
 

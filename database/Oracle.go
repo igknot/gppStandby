@@ -17,8 +17,6 @@ func NewConnection() *sql.DB {
 	if err != nil {
 
 		panic("Unable to create database connection", )
-	} else {
-		//log.Println("Connection created")
 	}
 
 	if err = db.Ping(); err != nil {

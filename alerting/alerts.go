@@ -24,12 +24,12 @@ func Callout(message string) {
 
 	message = reg.ReplaceAllString(message, "")
 	url := os.Getenv("CALLOUT_ENDPOINT") + os.Getenv("CHAT_ID")
-	 fmt.Println("URL:>",url)
+	 log.Println("URL:>",url)
 
 
     var jsonStr = []byte(`{"message":"Please check GPP. ` + message + `","title":"gpp callout" }`)
 
-    fmt.Printf(string(jsonStr))
+    log.Println("call out:",string(jsonStr))
 
     req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
     req.Header.Set("Accept", "application/json")
@@ -38,14 +38,15 @@ func Callout(message string) {
     client := &http.Client{}
     resp, err := client.Do(req)
     if err != nil {
-        panic(err)
+        log.Println(err.Error())
+        return
     }
     defer resp.Body.Close()
 
-    fmt.Println("response Status:", resp.Status)
-    fmt.Println("response Headers:", resp.Header)
+    log.Println("response Status:", resp.Status)
+    log.Println("response Headers:", resp.Header)
     body, _ := ioutil.ReadAll(resp.Body)
-    fmt.Println("response Body:", string(body))
+    log.Println("response Body:", string(body))
 
 	message = "INVOKE - CALL OUT\n" + message
 	Info(message)
@@ -70,7 +71,7 @@ func Info(message string) {
 	resp, err := http.Post(url, "text/plain", strings.NewReader(message))
 
 	if err != nil {
-		fmt.Println("Call to hal did not work")
+		log.Println("Call to hal did not work")
 		return
 	} else {
 		defer resp.Body.Close()
@@ -88,36 +89,36 @@ func Info(message string) {
 func SendMail(subject ,message string ) {
 	mailfrom := os.Getenv("MAILFROM")
 	if mailfrom == "" {
-		panic("MAILFROM not set")
+		log.Println("MAILFROM not set")
 	}
 	to := strings.Split(os.Getenv("MAILTO"),",")
 	var mailto string
 	if len(to) == 0 {
-		panic("MAILTO environment variable not set")
+		log.Println("MAILTO environment variable not set")
 	} else{
 
-		fmt.Println("mailto: ", to)
+		log.Println("mailto: ", to)
 
 	}
 	server := os.Getenv("MAILSERVER")
 	if server == "" {
-		panic("MAILSERVER environment variable not set")
+		log.Println("MAILSERVER environment variable not set")
 	}
 
 	c, err := smtp.Dial(server)
 	if err != nil {
-		panic(err)
+		log.Println(err.Error())
 	}
 
 	c.Mail(mailfrom)
 	for _, t := range to {
-		fmt.Println("recipient:",t)
+		log.Println("recipient:",t)
 		c.Rcpt(t)
 	}
 
 	data, err := c.Data()
 	if err != nil {
-		panic(err)
+		log.Println(err.Error())
 	}
 	defer data.Close()
 
