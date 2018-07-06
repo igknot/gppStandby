@@ -21,10 +21,10 @@ var statusEdoResponseSAP, statusEdoResponseLEG, statusEdoResponseLEGSAP string
 var day1_WAITSCHEDSUBBATCH, day0_SCHEDULE, day1_MP_WAIT, day0_NightTrackingFile, day1_edoPosting, day1_edoPostingArchived, day1_sapResponse, day1_legacyResponse int64
 
 func main() {
-
+	testchecks()
 	reset() // contains set date
 
-	alerting.Info("Starting Automated Standby v20180704-1041")
+	alerting.Info("Starting Automated Standby v20180706-1041")
 
 	scheduler := gocron.NewScheduler()
 
@@ -113,7 +113,7 @@ func testchecks() {
 	//edoFilesOutGoingArchived()
 	//
 	//edoResponseSAP() //anytime before 01:30 or 02:30 send mail to rcop if they are not there
-	//	edoResponseLEG()
+		edoResponseLEG()
 	//buildMailMessage()
 	log.Println("testchecks end")
 }

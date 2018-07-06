@@ -81,7 +81,7 @@ func Info(message string) {
 		if err != nil {
 			log.Printf("Telegram message send status:%s \nError: %s\nBody:%s",status,err.Error(),body)
 		}
-		log.Print("Telegram message send status:",status)
+		log.Printf("Telegram message: % send status: %s",message,status)
 	}
 
 }
