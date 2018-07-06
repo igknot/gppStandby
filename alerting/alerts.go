@@ -16,6 +16,7 @@ import (
 //invoke callout with
 func Callout(message string) {
 
+	Info( "INVOKE - CALL OUT\n" + message )
 
 	reg, err := regexp.Compile("[^a-zA-Z0-9- :\n\t/]+")
 	if err != nil {
@@ -48,8 +49,7 @@ func Callout(message string) {
     body, _ := ioutil.ReadAll(resp.Body)
     log.Println("response Body:", string(body))
 
-	message = "INVOKE - CALL OUT\n" + message
-	Info(message)
+
 
 
 }
