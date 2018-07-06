@@ -105,15 +105,15 @@ func testchecks() {
 	//getRolloverdate("ZA1")
 	//getRolloverdate("***")
 	//getWAITSCHEDSUBBATCHcount()
-	//edoTrackingFileSAPLEG()
+	edoTrackingFileSAPLEG()
 	//getMPWAITcount()
 	//getSCHEDULEcount()
 	////
-	//edoFilesOutGoing() //00:57
-	//edoFilesOutGoingArchived()
+	edoFilesOutGoing() //00:57
+	edoFilesOutGoingArchived()
 	//
-	//edoResponseSAP() //anytime before 01:30 or 02:30 send mail to rcop if they are not there
-		edoResponseLEG()
+	edoResponseSAP() //anytime before 01:30 or 02:30 send mail to rcop if they are not there
+	edoResponseLEG()
 	//buildMailMessage()
 	log.Println("testchecks end")
 }
