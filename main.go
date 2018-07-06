@@ -21,10 +21,15 @@ var statusEdoResponseSAP, statusEdoResponseLEG, statusEdoResponseLEGSAP string
 var day1_WAITSCHEDSUBBATCH, day0_SCHEDULE, day1_MP_WAIT, day0_NightTrackingFile, day1_edoPosting, day1_edoPostingArchived, day1_sapResponse, day1_legacyResponse int64
 
 func main() {
+	alerting.Info("Starting Automated Standby v20180706-1059")
+	reset()
+	//
+	//
 	testchecks()
-	reset() // contains set date
 
-	alerting.Info("Starting Automated Standby v20180706-1041")
+
+
+	reset()
 
 	scheduler := gocron.NewScheduler()
 
@@ -90,24 +95,19 @@ func setDates() {
 	}
 }
 
-//func logNow() {
-//	defaultFormat := "2006-01-02 15:04"
-//	now := time.Now().Format(defaultFormat)
-//	log.Println("-------------------", now)
-//
-//}
+
 
 func testchecks() {
 
 
 	log.Println("testchecks start")
 	checkFailureFolders()
-	//getRolloverdate("ZA1")
-	//getRolloverdate("***")
-	//getWAITSCHEDSUBBATCHcount()
+	getRolloverdate("ZA1")
+	getRolloverdate("***")
+	getWAITSCHEDSUBBATCHcount()
 	edoTrackingFileSAPLEG()
-	//getMPWAITcount()
-	//getSCHEDULEcount()
+	getMPWAITcount()
+	getSCHEDULEcount()
 	////
 	edoFilesOutGoing() //00:57
 	edoFilesOutGoingArchived()
@@ -115,12 +115,12 @@ func testchecks() {
 	edoResponseSAP() //anytime before 01:30 or 02:30 send mail to rcop if they are not there
 	edoResponseLEG()
 	//buildMailMessage()
-	log.Println("testchecks end")
+	log.Println("testchecks complete")
 }
 
 func reset() {
 
-	log.Println("reset()")
+	log.Println("reset() start")
 
 	day0Date, day1Date, xxxDate, za1Date = "", "", "", ""
 	statusXxxDate, statusZa1Date, statusReleaseWarehousedPayments, statusGenerateEDOfile = "unset", "unset", "unset", "unset"
@@ -129,6 +129,7 @@ func reset() {
 	statusEdoResponseSAP, statusEdoResponseLEG, statusEdoResponseLEGSAP = "Not received", "Not received", "Not received"
 
 	setDates()
+	log.Println("reset() complete")
 
 }
 
@@ -178,14 +179,14 @@ func getRolloverdate(office string) {
 		alerting.Info(message)
 
 	}
-
+	log.Println("getRolloverdate() complete")
 }
 
 func getWAITSCHEDSUBBATCHcount() {
+	log.Println("getWAITSCHEDSUBBATCHcount() start")
+
 	db = database.NewConnection()
 	defer db.Close()
-
-
 
 	query := "SELECT count(*) transactions FROM gpp_sp.minf WHERE p_msg_sts = 'WAITSCHEDSUBBATCH' AND p_dbt_vd = '" + day1Date + "'  and p_msg_type = 'Pacs_003'"
 
@@ -206,6 +207,7 @@ func getWAITSCHEDSUBBATCHcount() {
 		alerting.Info(message)
 	}
 
+	log.Println("getWAITSCHEDSUBBATCHcount() complete")
 }
 
 func edoTrackingFileSAPLEG() {
@@ -257,13 +259,13 @@ func edoTrackingFileSAPLEG() {
 	message = fmt.Sprintf("Tracking file recived from EDO contains %d records \n", day0_NightTrackingFile)
 	alerting.Info(message)
 	log.Println(message)
-	log.Println("edoTrackingFileSAPLEG --end")
+	log.Println("edoTrackingFileSAPLEG complete")
 
 }
 
 func getMPWAITcount() {
 
-	//
+	log.Println("getMPWAITcount() start")
 
 	db = database.NewConnection()
 	defer db.Close()
@@ -298,9 +300,12 @@ func getMPWAITcount() {
 	log.Println(message)
 	alerting.Info(message)
 
+	log.Println("getMPWAITcount() complete")
+
 }
 
 func getSCHEDULEcount() {
+	log.Println("getSCHEDULEcount() start")
 	db = database.NewConnection()
 	defer db.Close()
 
@@ -326,9 +331,14 @@ func getSCHEDULEcount() {
 	log.Println(message)
 	alerting.Info(message)
 
+	log.Println("getSCHEDULEcount() complete")
+
 }
 
 func edoFilesOutGoing() {
+
+	log.Println("edoFilesOutGoing() start")
+
 
 	command := "find /cdwasha/connectdirect/outgoing/EDO_DirectDebitRequest -type f -cmin -60 -name 'EDO_POST*' -exec wc -l {} \\; "
 
@@ -367,20 +377,21 @@ func edoFilesOutGoing() {
 		log.Println(message)
 		log.Println("edoFilesOutGoing --end")
 	}
-
+	log.Println("edoFilesOutGoing() complete")
 }
 
 func checkFailureFolders() {
 /*
 
-/cdwasha/connectdirect/incoming/BOLPES_COLL/failure " 
-/cdwasha/connectdirect/incoming/GCE_COLL/failure
-/cdwasha/connectdirect/incoming/GCE_MNDT/failure
-/cdwasha/connectdirect/incoming/EDO_DirectDebitResponse/failure
+	/cdwasha/connectdirect/incoming/BOLPES_COLL/failure " 
+	/cdwasha/connectdirect/incoming/GCE_COLL/failure
+	/cdwasha/connectdirect/incoming/GCE_MNDT/failure
+	/cdwasha/connectdirect/incoming/EDO_DirectDebitResponse/failure
 
  */
+ 	//command := "find /cdwasha/connectdirect/incoming/*/failure -type f -name *.xml -ctime -29"  // -ctime -22 created less than 22 days ago
  	command := "find /cdwasha/connectdirect/incoming/*/failure -type f -name *.xml -cmin -29"  // -ctime -22 created less than 22 days ago
-	//command := "find /cdwasha/connectdirect/outgoing/EDO_DirectDebitRequest -type f -cmin -60 -name 'EDO_POST*' -exec wc -l {} \\; "
+
 
 	log.Println("checkFailureFolders: ", command)
 	message := ""
@@ -393,17 +404,18 @@ func checkFailureFolders() {
 			log.Println(message)
 		}
 		alerting.Callout(message)
-		log.Println(message)
+		log.Println("message:",message)
 		return
 	}
 
 	log.Println(output)
 	if len(output) >0 {
 		alerting.Callout("New files in failure folder")
+	} else {
+		log.Println("checkFailureFolders: no new files ")
 	}
 
 }
-
 
 func edoFilesOutGoingArchived() {
 
@@ -442,9 +454,9 @@ func edoFilesOutGoingArchived() {
 	} else {
 		alerting.Info(message)
 		log.Println(message)
-		log.Println("edoFilesOutGoing --end")
-	}
 
+	}
+	log.Println("edoFilesOutGoing --end")
 }
 
 func edoResponseLEG() {
@@ -495,7 +507,7 @@ func edoResponseLEG() {
 	alerting.Info(message)
 	log.Println(message)
 
-	log.Println("EdoResponseLEG --end")
+	log.Println("EdoResponseLEG() complete")
 
 }
 
@@ -546,7 +558,7 @@ func edoResponseSAP() {
 	alerting.Info(message)
 	log.Println(message)
 
-	log.Println("EdoResponseSAP --end")
+	log.Println("EdoResponseSAP() complete ")
 }
 
 func allStatuses() {
