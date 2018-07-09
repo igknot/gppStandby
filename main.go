@@ -67,7 +67,7 @@ func main() {
 
 	//9 edoResponse anytime before 01:30 or 02:30 send mail to rcop if they are not there
 	scheduler.Every(1).Day().At("01:28").Do(edoResponseSAP)
-	scheduler.Every(1).Day().At("01:29").Do(edoResponseLEG)
+	//scheduler.Every(1).Day().At("01:29").Do(edoResponseLEG)
 	//9 edoResponse anytime before 01:30 or 02:30 send mail to rcop if they are not there
 	scheduler.Every(1).Day().At("02:07").Do(edoResponseSAP)
 	scheduler.Every(1).Day().At("02:08").Do(edoResponseLEG)
