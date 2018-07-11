@@ -9,10 +9,10 @@ ToDo
 10. Secrets
 12. go-kit
 13. refactor
-14. Get a view of the actaul time response files are sent to avoid unnnecesarry call out
+
 15. make the file checks parameter driven , file time , reoccarance , failure message , action , repeats
-16. create http endpoints for adhoc checks and testing
-17.
+
+
 
 Doing:
 
@@ -26,3 +26,5 @@ Done
 11. Docker build simplify - dont need to rebuild the world every time
 9.  failure folders checks
 4.  Hal call out.
+14. Get a view of the actaul time response files are sent to avoid unnnecesarry call out
+16. create http endpoints for adhoc checks and testing
