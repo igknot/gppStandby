@@ -21,3 +21,5 @@ minkube.sh
 test/appdynamics.http
 .idea/*
 *secret*
+gppstandby-sit_deloyment
+yamls/*

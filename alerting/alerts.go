@@ -18,7 +18,7 @@ func Callout(message string) {
 
 	Info( "INVOKE - CALL OUT\n" + message )
 
-	reg, err := regexp.Compile("[^a-zA-Z0-9- :\n\t/]+")
+	reg, err := regexp.Compile("[^a-zA-Z0-9- :\t/]+")
 	if err != nil {
 		log.Fatal(err)
 	}

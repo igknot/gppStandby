@@ -13,7 +13,7 @@ spec:
         name: gppstandby
     spec:
       containers:
-      - image: harbor.cloudy.standardbank.co.za/gppstandby/gppstandby:6
+      - image: harbor.cloudy.standardbank.co.za/gppstandby/gppstandby:7
         #imagePullPolicy: Never
         imagePullPolicy: Always
         #imagePullPolicy: IfNotPresent
