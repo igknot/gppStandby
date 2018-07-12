@@ -2,6 +2,7 @@ FROM oraclego
 
 WORKDIR /go/src/github.com/igknot/gppStandby
 ADD database/clientSoftware/oci8_linux.pc /oreclient_install_dir/instantclient_12_2/oci8.pc
+RUN rm main.go
 
 RUN go get -v ./...
 

@@ -27,7 +27,7 @@ func main() {
 	alerting.Info("Starting Automated Standby v20180711-1352")
 	reset()
 	//go handleRequests()
-	handleRequests()
+	go handleRequests()
 	//
 	//testchecks()
 
