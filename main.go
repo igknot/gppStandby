@@ -1,13 +1,14 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"github.com/igknot/gppStandby/database"
 	"github.com/jasonlvhit/gocron"
 	"log"
 
+	"database/sql"
 	"github.com/igknot/gppStandby/alerting"
+	"github.com/igknot/gppStandby/fileChecks"
 	"github.com/igknot/gppStandby/remote"
 	"net/http"
 	"os"
@@ -23,7 +24,7 @@ var statusEdoResponseSAP, statusEdoResponseLEG, statusEdoResponseLEGSAP string
 var day1_WAITSCHEDSUBBATCH, day0_SCHEDULE, day1_MP_WAIT, day0_NightTrackingFile, day1_edoPosting, day1_edoPostingArchived, day1_sapResponse, day1_legacyResponse int64
 
 func main() {
-	alerting.Info("Starting Automated Standby v20180709-1059")
+	alerting.Info("Starting Automated Standby v20180711-1352")
 	reset()
 	//go handleRequests()
 	handleRequests()
@@ -34,6 +35,7 @@ func main() {
 
 	scheduler := gocron.NewScheduler()
 
+	scheduler.Every(15).Minute().Do("checkFailureFolders")
 	scheduler.Every(15).Minutes().Do(checkFailureFolders)
 
 	scheduler.Every(1).Day().At("23:28").Do(reset)
@@ -410,48 +412,75 @@ func checkFailureFolders() {
 	}
 
 }
-
 func edoFilesOutGoingArchived() {
-
-	command := "find /cdwasha/connectdirect/outgoing/EDO_DirectDebitRequest -type f -cmin -60 -name 'EDO_POST*' -exec wc -l {} \\; "
-
-	log.Println("edoFilesOutGoing\t", command)
-	message := ""
-	output, err := remote.RemoteSsh(command)
+	// CheckFile(filename, directory , age  string ) (err error, found bool, lineCount int, fileTime string)
+	dir := "/cdwasha/connectdirect/outgoing/EDO_DirectDebitRequest/archive"
+	age := "1600"
+	fileName := "EDO_POST*"
+	err, found, lineCount, fileTime := fileChecks.CheckFile(fileName, dir, age)
 	if err != nil {
-
-		log.Println("error:", err.Error())
-		if err.Error() == "Process exited with status 1" {
-			message = "Outgoing edo file check failed "
-			log.Println(message)
-		}
+		message := "edoFilesOutGoingArchive check failed"
+		log.Println(message + err.Error())
 		alerting.Callout(message)
-		log.Println(message)
-		return
 	}
-
-	log.Println(output)
-	outputSlice := strings.Split(output, " ")
-	linecount, _ := strconv.Atoi(outputSlice[0])
-	if linecount == 0 {
-		message = "EDO_POSTING file not found in /cdwasha/connectdirect/outgoing/EDO-DirectDebitRequest/archive "
+	if !found {
+		message := "EDO_POSTING file not found in /cdwasha/connectdirect/outgoing/EDO-DirectDebitRequest/archive "
 		alerting.Callout(message)
 		return
 	}
-	records := linecount - 2
-
-	day1_edoPostingArchived = int64(records)
-	message = fmt.Sprintf("Archived EDO-POSTING file contains %d records \n", day1_edoPostingArchived)
+	day1_edoPostingArchived = int64(lineCount - 2)
+	message := fmt.Sprintf("Archived EDO-POSTING file: created at %s contains %d records \n", fileTime, day1_edoPostingArchived)
 	if day1_edoPosting != day1_MP_WAIT {
 		message += fmt.Sprintf("\nExpected %d ", day1_MP_WAIT)
 		alerting.Callout(message)
 	} else {
 		alerting.Info(message)
 		log.Println(message)
-
 	}
-	log.Println("edoFilesOutGoing --end")
+
 }
+
+//func edoFilesOutGoingArchived() {
+//
+//	command := "find /cdwasha/connectdirect/outgoing/EDO_DirectDebitRequest -type f -cmin -60 -name 'EDO_POST*' -exec wc -l {} \\; "
+//
+//	log.Println("edoFilesOutGoing\t", command)
+//	message := ""
+//	output, err := remote.RemoteSsh(command)
+//	if err != nil {
+//
+//		log.Println("error:", err.Error())
+//		if err.Error() == "Process exited with status 1" {
+//			message = "Outgoing edo file check failed "
+//			log.Println(message)
+//		}
+//		alerting.Callout(message)
+//		log.Println(message)
+//		return
+//	}
+//
+//	log.Println(output)
+//	outputSlice := strings.Split(output, " ")
+//	linecount, _ := strconv.Atoi(outputSlice[0])
+//	if linecount == 0 {
+//		message = "EDO_POSTING file not found in /cdwasha/connectdirect/outgoing/EDO-DirectDebitRequest/archive "
+//		alerting.Callout(message)
+//		return
+//	}
+//	records := linecount - 2
+//
+//	day1_edoPostingArchived = int64(records)
+//	message = fmt.Sprintf("Archived EDO-POSTING file contains %d records \n", day1_edoPostingArchived)
+//	if day1_edoPosting != day1_MP_WAIT {
+//		message += fmt.Sprintf("\nExpected %d ", day1_MP_WAIT)
+//		alerting.Callout(message)
+//	} else {
+//		alerting.Info(message)
+//		log.Println(message)
+//
+//	}
+//	log.Println("edoFilesOutGoing --end")
+//}
 
 func edoResponseLEG() {
 
@@ -632,11 +661,23 @@ func handleRequests() {
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 func handleTestCheck(w http.ResponseWriter, r *http.Request) {
-	parm := r.URL.Query().Get("function")
+	//https://medium.com/doing-things-right/pretty-printing-http-requests-in-golang-a918d5aaa000
 
-	log.Println("params:", parm)
+	functions := []string{"testchecks", "getRolloverdate", "getWAITSCHEDSUBBATCHcount", "edoTrackingFileSAPLEG",
+		"getMPWAITcount", "getSCHEDULEcount", "edoFilesOutGoing", "checkFailureFolders", "edoFilesOutGoingArchived",
+		"edoResponseLEG", "edoResponseSAP", "allStatuses", "buildMailMessage"}
 
-	fmt.Fprintf(w, "testing function "+parm)
+	var parm string
+	if parm = r.URL.Query().Get("function"); parm == "" {
+		for _, f := range functions {
+			url := fmt.Sprintf("%v%v%v%v", `http://`, r.Host, "/test?function=", f)
+			log.Println("URL:>", url)
+			fmt.Fprintf(w, "<a href=%v>%v</a></br>", url, url)
+		}
+	}
+
+	log.Println("parm:", parm)
+
 	switch parm {
 	case "testchecks":
 		testchecks()

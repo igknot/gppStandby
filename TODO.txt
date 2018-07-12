@@ -11,7 +11,10 @@ ToDo
 13. refactor
 
 15. make the file checks parameter driven , file time , reoccarance , failure message , action , repeats
-
+17. gppprod seems to be constantly monitoring filesystem - steal code
+18. Continuous file system check
+19. Add statuses to edo response check 00-complete,02-Rejected,06-Locked account,12-Acc Closed,99-Tracking
+    cat 2018-07-12_01-00-31.835_ACDEBIT.RESPONSE.SAP.20180712.010030 | awk '{ print substr($1,68,2) }' | sort | uniq -c
 
 
 Doing:

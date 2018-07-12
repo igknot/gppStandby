@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/igknot/gppStandby/alerting"
 
-	"github.com/mongodb/mongo-go-driver/mongo"
+	//"github.com/mongodb/mongo-go-driver/mongo"
 	"fmt"
 	"net/smtp"
 	"strconv"
@@ -11,8 +11,6 @@ import (
 	"time"
 	"strings"
 	"os"
-	"context"
-	"github.com/mongodb/mongo-go-driver/bson"
 )
 type comment struct {
 
@@ -36,18 +34,18 @@ func main() {
 
 func dbtest(){
 
-	client, err := mongo.Connect(context.Background(), "mongodb://localhost:27017", nil)
-	defer client.Disconnect(context.Background())
-	if err != nil {
-		fmt.Printf("unable to connext to database ")
-	}
-
-	db := client.Database("gppstandby")
-	collection := db.Collection("checks")
-	result, err :=collection.InsertOne(context.Background(),bson.NewDocument(bson.EC.String("item","pere")))
-	if err != nil {
-		fmt.Printf("unable to connext to database ", result)
-	}
+	//client, err := mongo.Connect(context.Background(), "mongodb://localhost:27017", nil)
+	//defer client.Disconnect(context.Background())
+	//if err != nil {
+	//	fmt.Printf("unable to connext to database ")
+	//}
+	//
+	//db := client.Database("gppstandby")
+	//collection := db.Collection("checks")
+	//result, err :=collection.InsertOne(context.Background(),bson.NewDocument(bson.EC.String("item","pere")))
+	//if err != nil {
+	//	fmt.Printf("unable to connext to database ", result)
+	//}
 
 
 
