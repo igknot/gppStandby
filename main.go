@@ -24,7 +24,7 @@ var statusEdoResponseSAP, statusEdoResponseLEG, statusEdoResponseLEGSAP string
 var day1_WAITSCHEDSUBBATCH, day0_SCHEDULE, day1_MP_WAIT, day0_NightTrackingFile, day1_edoPosting, day1_edoPostingArchived, day1_sapResponse, day1_legacyResponse int64
 
 func main() {
-	alerting.Info("Starting Automated Standby v20180713-1001")
+	alerting.Info("Starting Automated Standby v20180713-1201")
 	reset()
 	//go handleRequests()
 	go handleRequests()
@@ -35,7 +35,7 @@ func main() {
 
 	scheduler := gocron.NewScheduler()
 
-	scheduler.Every(15).Minute().Do("checkFailureFolders")
+//	scheduler.Every(15).Minute().Do("checkFailureFolders")
 	scheduler.Every(15).Minutes().Do(checkFailureFolders)
 
 	scheduler.Every(1).Day().At("23:28").Do(reset)
