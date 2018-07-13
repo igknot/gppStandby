@@ -16,8 +16,9 @@ import (
 //invoke callout with
 func Callout(message string) {
 
+	Info( "INVOKE - CALL OUT\n" + message )
 
-	reg, err := regexp.Compile("[^a-zA-Z0-9- :\n\t/]+")
+	reg, err := regexp.Compile("[^a-zA-Z0-9- :\t/]+")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -48,8 +49,7 @@ func Callout(message string) {
     body, _ := ioutil.ReadAll(resp.Body)
     log.Println("response Body:", string(body))
 
-	message = "INVOKE - CALL OUT\n" + message
-	Info(message)
+
 
 
 }
@@ -81,7 +81,7 @@ func Info(message string) {
 		if err != nil {
 			log.Printf("Telegram message send status:%s \nError: %s\nBody:%s",status,err.Error(),body)
 		}
-		log.Print("Telegram message send status:",status)
+		log.Printf("Telegram message: % send status: %s",message,status)
 	}
 
 }

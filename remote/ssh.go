@@ -9,23 +9,30 @@ import (
 	"os"
 	"strings"
 	"encoding/base64"
+	"github.com/igknot/gppStandby/alerting"
+	"fmt"
 )
 
 func RemoteSsh(cmd string) (string, error) {
-	//this is used when running in kubernetes using a secret base64
-	//sshfile := []byte(strings.Replace(os.Getenv("SSH_KEY"), "*", "\n", -1))
+
+
+	var sshfile []byte
 
 	//this is used when running local using env base64 ssh key
 	decoded, err := base64.StdEncoding.DecodeString(strings.Replace(os.Getenv("SSH_KEY"), "*", "\n", -1))
-	//log.Print(decoded)
-	sshfile :=  []byte(decoded)
+	if err == nil {
+		sshfile = []byte(decoded)
+	} else {
+		//this is used when running in kubernetes using a secret base64
+		//sshfile := []byte(strings.Replace(os.Getenv("SSH_KEY"), "*", "\n", -1))
 
+		sshfile = []byte(strings.Replace(os.Getenv("SSH_KEY"), "*", "\n", -1))
+	}
 
 	signer, err := ssh.ParsePrivateKey(sshfile)
 	if err != nil {
-		log.Fatalf("unable to parse private key: %v", err)
-	} else {
-		log.Println("private key parsed")
+		log.Println("unable to parse private key: %v", err.Error())
+		alerting.Info(fmt.Sprintf("unable to parse private key: %v", err.Error()))
 	}
 
 	config := &ssh.ClientConfig{

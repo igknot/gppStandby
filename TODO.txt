@@ -1,12 +1,23 @@
 ToDo
 
-9.  failure folders checks
+
 3.  Persistence layer to cater for pod being killed
-4.  Hal call out.
+    3.1 change state management to use single function still using memory
+    3.2 change function to use memory
+
 7.  Change edo response to ony invoke call out after 2nd check first time round only send message
 10. Secrets
 12. go-kit
 13. refactor
+
+15. make the file checks parameter driven , file time , reoccarance , failure message , action , repeats
+17. gppprod seems to be constantly monitoring filesystem - steal code
+18. Continuous file system check
+19. Add statuses to edo response check 00-complete,02-Rejected,06-Locked account,12-Acc Closed,99-Tracking
+    cat 2018-07-12_01-00-31.835_ACDEBIT.RESPONSE.SAP.20180712.010030 | awk '{ print substr($1,68,2) }' | sort | uniq -c
+
+
+Doing:
 
 
 Done
@@ -16,3 +27,7 @@ Done
 5.  schedule Email of results
 8.  Shorten deployment file with references to individual ENV variables removed
 11. Docker build simplify - dont need to rebuild the world every time
+9.  failure folders checks
+4.  Hal call out.
+14. Get a view of the actaul time response files are sent to avoid unnnecesarry call out
+16. create http endpoints for adhoc checks and testing
