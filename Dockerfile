@@ -2,10 +2,15 @@ FROM oraclego
 
 WORKDIR /go/src/github.com/igknot/gppStandby
 ADD database/clientSoftware/oci8_linux.pc /oreclient_install_dir/instantclient_12_2/oci8.pc
+RUN rm -fr /go/src/github.com/igknot/gppStandby
+
+WORKDIR /go/src/github.com/igknot
+
+RUN git -c http.sslVerify=false clone -v https://github.com/igknot/gppStandby.git
 
 RUN go get -v ./...
 
-RUN cp database/clientSoftware/oci8_linux.pc /oreclient_install_dir/instantclient_12_2/oci8.pc
+#RUN cp database/clientSoftware/oci8_linux.pc /oreclient_install_dir/instantclient_12_2/oci8.pc
 
 RUN go install -v ./...
 

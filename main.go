@@ -24,10 +24,10 @@ var statusEdoResponseSAP, statusEdoResponseLEG, statusEdoResponseLEGSAP string
 var day1_WAITSCHEDSUBBATCH, day0_SCHEDULE, day1_MP_WAIT, day0_NightTrackingFile, day1_edoPosting, day1_edoPostingArchived, day1_sapResponse, day1_legacyResponse int64
 
 func main() {
-	alerting.Info("Starting Automated Standby v20180711-1352")
+	alerting.Info("Starting Automated Standby v20180713-1001")
 	reset()
 	//go handleRequests()
-	handleRequests()
+	go handleRequests()
 	//
 	//testchecks()
 
