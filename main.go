@@ -415,7 +415,7 @@ func checkFailureFolders() {
 func edoFilesOutGoingArchived() {
 	// CheckFile(filename, directory , age  string ) (err error, found bool, lineCount int, fileTime string)
 	dir := "/cdwasha/connectdirect/outgoing/EDO_DirectDebitRequest/archive"
-	age := "1600"
+	age := "60"
 	fileName := "EDO_POST*"
 	err, found, lineCount, fileTime := fileChecks.CheckFile(fileName, dir, age)
 	if err != nil {
@@ -440,47 +440,6 @@ func edoFilesOutGoingArchived() {
 
 }
 
-//func edoFilesOutGoingArchived() {
-//
-//	command := "find /cdwasha/connectdirect/outgoing/EDO_DirectDebitRequest -type f -cmin -60 -name 'EDO_POST*' -exec wc -l {} \\; "
-//
-//	log.Println("edoFilesOutGoing\t", command)
-//	message := ""
-//	output, err := remote.RemoteSsh(command)
-//	if err != nil {
-//
-//		log.Println("error:", err.Error())
-//		if err.Error() == "Process exited with status 1" {
-//			message = "Outgoing edo file check failed "
-//			log.Println(message)
-//		}
-//		alerting.Callout(message)
-//		log.Println(message)
-//		return
-//	}
-//
-//	log.Println(output)
-//	outputSlice := strings.Split(output, " ")
-//	linecount, _ := strconv.Atoi(outputSlice[0])
-//	if linecount == 0 {
-//		message = "EDO_POSTING file not found in /cdwasha/connectdirect/outgoing/EDO-DirectDebitRequest/archive "
-//		alerting.Callout(message)
-//		return
-//	}
-//	records := linecount - 2
-//
-//	day1_edoPostingArchived = int64(records)
-//	message = fmt.Sprintf("Archived EDO-POSTING file contains %d records \n", day1_edoPostingArchived)
-//	if day1_edoPosting != day1_MP_WAIT {
-//		message += fmt.Sprintf("\nExpected %d ", day1_MP_WAIT)
-//		alerting.Callout(message)
-//	} else {
-//		alerting.Info(message)
-//		log.Println(message)
-//
-//	}
-//	log.Println("edoFilesOutGoing --end")
-//}
 
 func edoResponseLEG() {
 
