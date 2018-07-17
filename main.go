@@ -35,7 +35,7 @@ func main() {
 
 	scheduler := gocron.NewScheduler()
 
-//	scheduler.Every(15).Minute().Do("checkFailureFolders")
+	//	scheduler.Every(15).Minute().Do("checkFailureFolders")
 	scheduler.Every(15).Minutes().Do(checkFailureFolders)
 
 	scheduler.Every(1).Day().At("23:28").Do(reset)
@@ -405,11 +405,20 @@ func checkFailureFolders() {
 	}
 
 	log.Println(output)
-	if len(output) > 0 {
-		alerting.Callout("New files in failure folder")
-	} else {
+	if len(output) == 0 {
 		log.Println("checkFailureFolders: no new files ")
+		return
 	}
+	var folders string
+	for k, v := range strings.Split(output, "\n") {
+		subfolder := strings.Split(v, `/`)
+		if len(subfolder) > 4 {
+
+			folders = folders + " " + subfolder[4]
+		}
+		log.Println(k, v)
+	}
+	alerting.Callout("New files in failure folder:" + folders)
 
 }
 func edoFilesOutGoingArchived() {
@@ -439,7 +448,6 @@ func edoFilesOutGoingArchived() {
 	}
 
 }
-
 
 func edoResponseLEG() {
 
