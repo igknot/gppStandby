@@ -24,22 +24,23 @@ var statusEdoResponseSAP, statusEdoResponseLEG, statusEdoResponseLEGSAP string
 var day1_WAITSCHEDSUBBATCH, day0_SCHEDULE, day1_MP_WAIT, day0_NightTrackingFile, day1_edoPosting, day1_edoPostingArchived, day1_sapResponse, day1_legacyResponse int64
 
 func main() {
-	info, err := os.Stat("gppStandby")
+	info, err := os.Stat("/go/bin/gppStandby")
+	var version string
 	if err != nil {
-		// TODO: handle errors (e.g. file not found)
+		version = "version not found"
+	} else {
+
+		a := info.ModTime()
+		timeFormat := "Mon Jan 2 15:04:05 MST 2006"
+		version = a.Format(timeFormat)
+
 	}
-
-	a :=info.ModTime()
-	timeFormat := "Mon Jan 2 15:04:05 MST 2006"
-	version := a.Format(timeFormat)
-
-
 
 	alerting.Info("Starting Automated Standby version " +  version)
 
 
 	go handleRequests()
-	 
+
 
 	reset()
 
