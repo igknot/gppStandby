@@ -218,7 +218,6 @@ func getWAITSCHEDSUBBATCHcount() {
 	log.Println("getWAITSCHEDSUBBATCHcount() complete")
 }
 
-
 // after 00:01
 // this should check whether /cdwasha/connectdirect/incoming/EDO_DirectDebitResponse/*SAP.LEG file exists
 //remedialAction := `
@@ -246,26 +245,22 @@ func edoTrackingFileSAPLEG() {
 		alerting.Callout(message)
 	}
 	if !found {
-		message := fmt.Sprintf("EdoTrackingfile LEG.SAP file  %s not found in  %s ", fileName, dir )
+		message := fmt.Sprintf("EdoTrackingfile LEG.SAP file  %s not found in  %s ", fileName, dir)
 		alerting.Callout(message)
 
 	} else {
 		edoTrackingFileCount = int64(lineCount - 2)
 		edoTrackingFileStatus = "Received at " + fileTime
 		message := fmt.Sprintf("EdoTrackingfile LEG.SAP : created at %s contains %d records \n", fileTime, edoTrackingFileCount)
-		if edoFilesOutGoingCount != mpWaitCount {
-			message += fmt.Sprintf("\nExpected %d ", mpWaitCount)
-			alerting.Callout(message)
-		} else {
-			alerting.Info(message)
-			log.Println(message)
-		}
+
+		alerting.Info(message)
+		log.Println(message)
+
 	}
 
 	log.Println("edoTrackingFileSAPLEG - complete")
 
 }
-
 
 func getMPWAITcount() {
 
