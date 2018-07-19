@@ -466,53 +466,37 @@ func edoResponseLEG() {
 }
 
 func edoResponseSAP() {
-
+	//............
 	log.Println("EdoResponseSAP")
 	if edoResponseSAPStatus != "Not received" {
 		log.Println("Already " + edoResponseSAPStatus)
 		return
 	}
 	defaultFormat := "2006-01-02"
-
 	today := time.Now().Format(defaultFormat)
 
-	command := "wc -l /cdwasha/connectdirect/incoming/EDO_DirectDebitResponse/archive/" + today + "*ACDEBIT.RESPONSE.SAP.*"
-	log.Println(command)
-	var message string
-	output, err := remote.RemoteSsh(command)
-	///
+	dir := "/cdwasha/connectdirect/incoming/EDO_DirectDebitResponse/archive/"
+	age := "60"
+	fileName := today + "*ACDEBIT.RESPONSE.SAP.2*"
+	err, found, lineCount, fileTime := fileChecks.CheckFile(fileName, dir, age)
 	if err != nil {
-
-		log.Println("error:", err.Error())
-		if err.Error() == "Process exited with status 1" {
-			message = "EDO Response SAP file check failed "
-			log.Println(message)
-		}
+		message := "edoResponseSAP check failed"
+		log.Println(message + err.Error())
 		alerting.Callout(message)
+	}
+	if !found {
+		message := "EDO SAP response file not found in /cdwasha/connectdirect/incoming/EDO_DirectDebitResponse/archive/ "
+		alerting.Callout(message)
+
+	} else {
+		edoResponseSAPCount = int64(lineCount - 2)
+		edoResponseSAPStatus = "Recieved at " + fileTime
+		message := fmt.Sprintf("Archived SAP  Respomse file: recieved at %s contains %d records \n", fileTime, edoResponseSAPCount)
+
+		alerting.Info(message)
 		log.Println(message)
-		return
 	}
-
-	log.Println(output)
-	outputSlice := strings.Split(output, " ")
-	linecount, _ := strconv.Atoi(outputSlice[0])
-	if linecount == 0 {
-		message = "EDO Response SAP file not found in /cdwasha/connectdirect/incoming/EDO-DirectDebitResponse/archive/"
-		alerting.Callout(message)
-		return
-	}
-	records := linecount - 2
-	outputSlice = strings.Split(output, ".")
-	recieved := outputSlice[len(outputSlice)-1]
-	recievedat := recieved[0:2] + ":" + recieved[2:4] + ":" + recieved[4:6]
-	edoResponseSAPStatus = "Received at " + recievedat
-	edoResponseSAPCount = int64(records)
-	message = fmt.Sprintf("SAP Response file contains %d records \n%s", edoResponseSAPCount, edoResponseSAPStatus)
-
-	alerting.Info(message)
-	log.Println(message)
-
-	log.Println("EdoResponseSAP() complete ")
+	log.Println("EdoResponseSAP-complete")
 }
 
 func allStatuses() {
