@@ -341,49 +341,34 @@ func getSCHEDULEcount() {
 	log.Println("getSCHEDULEcount() complete")
 
 }
-
 func edoFilesOutGoing() {
-
-	log.Println("edoFilesOutGoing() start")
-
-	command := "find /cdwasha/connectdirect/outgoing/EDO_DirectDebitRequest -type f -cmin -60 -name 'EDO_POST*' -exec wc -l {} \\; "
-
-	log.Println("edoFilesOutGoing\n", command)
-	message := ""
-	output, err := remote.RemoteSsh(command)
+	log.Println("edoFilesOutGoing(")
+	dir := "/cdwasha/connectdirect/outgoing/EDO_DirectDebitRequest/"
+	age := "60"
+	fileName := "EDO_POST*"
+	err, found, lineCount, fileTime := fileChecks.CheckFile(fileName, dir, age)
 	if err != nil {
+		message := "edoFilesOutGoing check failed"
+		log.Println(message + err.Error())
+		alerting.Callout(message)
+	}
+	if !found {
+		message := "EDO_POSTING file not found in /cdwasha/connectdirect/outgoing/EDO-DirectDebitRequest/ "
+		alerting.Callout(message)
 
-		log.Println("error:", err.Error())
-		if err.Error() == "Process exited with status 1" {
-			message = "Outgoing edo file check failed "
+	} else {
+		day1_edoPosting = int64(lineCount - 2)
+		message := fmt.Sprintf("EDO-POSTING file: created at %s contains %d records \n", fileTime, day1_edoPosting)
+		if day1_edoPosting != day1_MP_WAIT {
+			message += fmt.Sprintf("\nExpected %d ", day1_MP_WAIT)
+			alerting.Callout(message)
+		} else {
+			alerting.Info(message)
 			log.Println(message)
 		}
-		alerting.Callout(message)
-		log.Println(message)
-		return
 	}
 
-	log.Println(output)
-	outputSlice := strings.Split(output, " ")
-	linecount, _ := strconv.Atoi(outputSlice[0])
-	if linecount == 0 {
-		message = "Outgoing EDO file not found in /cdwasha/connectdirect/outgoing/EDO-DirectDebitRequest "
-		alerting.Callout(message)
-		return
-	}
-	records := linecount - 2
-	day1_edoPosting = int64(records)
-	message = fmt.Sprintf("Outgoing EDO file contains %d records \n", day1_edoPosting)
-	if day1_edoPosting != day1_MP_WAIT {
-		message += fmt.Sprintf("\nExpected %d ", day1_MP_WAIT)
-		alerting.Callout(message)
-		log.Println(message)
-	} else {
-		alerting.Info(message)
-		log.Println(message)
-		log.Println("edoFilesOutGoing --end")
-	}
-	log.Println("edoFilesOutGoing() complete")
+	log.Println("edoFilesOutGoing - complete")
 }
 
 func checkFailureFolders() {
@@ -448,7 +433,7 @@ func edoFilesOutGoingArchived() {
 	}
 	day1_edoPostingArchived = int64(lineCount - 2)
 	message := fmt.Sprintf("Archived EDO-POSTING file: created at %s contains %d records \n", fileTime, day1_edoPostingArchived)
-	if day1_edoPosting != day1_MP_WAIT {
+	if day1_edoPostingArchived != day1_MP_WAIT {
 		message += fmt.Sprintf("\nExpected %d ", day1_MP_WAIT)
 		alerting.Callout(message)
 	} else {
