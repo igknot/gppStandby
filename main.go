@@ -344,7 +344,7 @@ func getSCHEDULEcount() {
 func edoFilesOutGoing() {
 	log.Println("edoFilesOutGoing(")
 	dir := "/cdwasha/connectdirect/outgoing/EDO_DirectDebitRequest/"
-	age := "60"
+	age := "1200"
 	fileName := "EDO_POST*"
 	err, found, lineCount, fileTime := fileChecks.CheckFile(fileName, dir, age)
 	if err != nil {
@@ -433,7 +433,7 @@ func edoFilesOutGoingArchived() {
 	}
 	day1_edoPostingArchived = int64(lineCount - 2)
 	message := fmt.Sprintf("Archived EDO-POSTING file: created at %s contains %d records \n", fileTime, day1_edoPostingArchived)
-	if day1_edoPosting != day1_MP_WAIT {
+	if day1_edoPostingArchived != day1_MP_WAIT {
 		message += fmt.Sprintf("\nExpected %d ", day1_MP_WAIT)
 		alerting.Callout(message)
 	} else {
