@@ -19,9 +19,9 @@ import (
 
 var db *sql.DB
 var day0Date, day1Date, xxxDate, za1Date string
-var statusXxxDate, statusZa1Date, statusReleaseWarehousedPayments, statusGenerateEDOfile string
-var statusEdoResponseSAP, statusEdoResponseLEG, statusEdoResponseLEGSAP string
-var day1_WAITSCHEDSUBBATCH, day0_SCHEDULE, day1_MP_WAIT, day0_NightTrackingFile, day1_edoPosting, day1_edoPostingArchived, day1_sapResponse, day1_legacyResponse int64
+var globalDateStatus, za1DateStatus, statusReleaseWarehousedPayments string
+var edoResponseSAPStatus, edoResponseLEGStatus, edoTrackingFileStatus string
+var day1_WAITSCHEDSUBBATCH, day0_SCHEDULE, mpWaitCount, edoTrackingFileCount, edoFilesOutGoingCount, edoFilesOutGoingArchivedCount, edoResponseSAPCount, edoResponseLEGCount int64
 
 func main() {
 	info, err := os.Stat("/go/bin/gppStandby")
@@ -72,7 +72,7 @@ func main() {
 	scheduler.Every(1).Day().At("00:52").Do(getMPWAITcount)
 
 	//7 Check edo files 00:57 + 2minutes for safety
-	scheduler.Every(1).Day().At("00:57").Do(edoFilesOutGoing)
+	scheduler.Every(1).Day().At("00:57").Do(checkEdoFilesOutGoing)
 
 	//8 edoFileArchived() //01:01//
 	scheduler.Every(1).Day().At("01:03").Do(edoFilesOutGoingArchived)
@@ -118,7 +118,7 @@ func testchecks() {
 	//getMPWAITcount()
 	//getSCHEDULEcount()
 	//////
-	//edoFilesOutGoing() //00:57
+	//checkEdoFilesOutGoing() //00:57
 	//edoFilesOutGoingArchived()
 	////
 	//edoResponseSAP() //anytime before 01:30 or 02:30 send mail to rcop if they are not there
@@ -132,10 +132,10 @@ func reset() {
 	log.Println("reset() start")
 
 	day0Date, day1Date, xxxDate, za1Date = "", "", "", ""
-	statusXxxDate, statusZa1Date, statusReleaseWarehousedPayments, statusGenerateEDOfile = "unset", "unset", "unset", "unset"
-	day1_WAITSCHEDSUBBATCH, day0_SCHEDULE, day1_MP_WAIT, day0_NightTrackingFile = 0, 0, 0, 0
-	day1_edoPosting, day1_edoPostingArchived, day1_sapResponse, day1_legacyResponse = 0, 0, 0, 0
-	statusEdoResponseSAP, statusEdoResponseLEG, statusEdoResponseLEGSAP = "Not received", "Not received", "Not received"
+	globalDateStatus, za1DateStatus, statusReleaseWarehousedPayments = "unset", "unset", "unset"
+	day1_WAITSCHEDSUBBATCH, day0_SCHEDULE, mpWaitCount, edoTrackingFileCount = 0, 0, 0, 0
+	edoFilesOutGoingCount, edoFilesOutGoingArchivedCount, edoResponseSAPCount, edoResponseLEGCount = 0, 0, 0, 0
+	edoResponseSAPStatus, edoResponseLEGStatus, edoTrackingFileStatus = "Not received", "Not received", "Not received"
 
 	setDates()
 	log.Println("reset() complete")
@@ -167,20 +167,20 @@ func getRolloverdate(office string) {
 			xxxDate = bsnessdate[:10]
 			if bsnessdate[:10] != tomorrow {
 				message = fmt.Sprintf("Date for office global did not roll\t Expected: %s \t Found:    %s", tomorrow, xxxDate)
-				statusXxxDate = "Automic roll failed"
+				globalDateStatus = "Automatic roll failed"
 			} else {
 				message = fmt.Sprintf("BUSINESS_DATE for GLOBAL automatically rolled \n%s", xxxDate)
-				statusXxxDate = "Rolled automatically"
+				globalDateStatus = "Rolled automatically"
 			}
 		}
 		if office == "ZA1" {
 			za1Date = bsnessdate[:10]
 			if bsnessdate[:10] != today {
 				message = fmt.Sprintf("BUSINESS_DATE for ZA1 automatically rolled \n%s", tomorrow, za1Date)
-				statusZa1Date = "Automic roll failed"
+				za1DateStatus = "Automic roll failed"
 			} else {
 				message = fmt.Sprintf("Date roll for office ZA1 complete now :   %s", za1Date)
-				statusZa1Date = "Rolled automatically"
+				za1DateStatus = "Rolled automatically"
 			}
 		}
 		log.Println(message)
@@ -218,56 +218,47 @@ func getWAITSCHEDSUBBATCHcount() {
 	log.Println("getWAITSCHEDSUBBATCHcount() complete")
 }
 
+// after 00:01
+// this should check whether /cdwasha/connectdirect/incoming/EDO_DirectDebitResponse/*SAP.LEG file exists
+//remedialAction := `
+//If the file has not been recieved
+//			Change: operations>interfaces EDO_POSTING_REQ to inactive  > save
+//					operations>apply changes> interface
+//			After file has been recieved
+//					operations> Tasks > New day Activities  > generate posting req for EDO > EDO_NEW > execute`
 func edoTrackingFileSAPLEG() {
-	// after 00:01
-	// this should check whether /cdwasha/connectdirect/incoming/EDO_DirectDebitResponse/*SAP.LEG file exists
-	//remedialAction := `
-	//If the file has not been recieved
-	//			Change: operations>interfaces EDO_POSTING_REQ to inactive  > save
-	//					operations>apply changes> interface
-	//			After file has been recieved
-	//					operations> Tasks > New day Activities  > generate posting req for EDO > EDO_NEW > execute`
-
+	//-----------------------
 	log.Println("edoTrackingFileSAPLEG")
-	defaultFormat := "2006-01-02"
 
+	defaultFormat := "2006-01-02"
 	today := time.Now().Format(defaultFormat)
 
-	command := "wc -l /cdwasha/connectdirect/incoming/EDO_DirectDebitResponse/archive/" + today + "*ACDEBIT.RESPONSE.LEG.SAP*"
+	dir := "/cdwasha/connectdirect/incoming/EDO_DirectDebitResponse/archive/"
 
-	var message string
-
-	log.Println(command)
-	//remote.RemoteSsh(command)
-	output, err := remote.RemoteSsh(command)
+	age := "60" // minutes
+	fileName := today + "*ACDEBIT.RESPONSE.LEG.SAP*"
+	log.Println("filename:", fileName)
+	err, found, lineCount, fileTime := fileChecks.CheckFile(fileName, dir, age)
 	if err != nil {
-		log.Println("error-recieved\noutput:", output)
-		log.Println("error:", err.Error())
-		if err.Error() == "Process exited with status 1" {
-			log.Println("No file recieved")
-			message = "Night tracking file not recieved :  "
-
-		}
+		message := "EdoTrackingfile LEG.SAP check failed"
+		log.Println(message + err.Error())
 		alerting.Callout(message)
+	}
+	if !found {
+		message := fmt.Sprintf("EdoTrackingfile LEG.SAP file  %s not found in  %s ", fileName, dir)
+		alerting.Callout(message)
+
+	} else {
+		edoTrackingFileCount = int64(lineCount - 2)
+		edoTrackingFileStatus = "Received at " + fileTime
+		message := fmt.Sprintf("EdoTrackingfile LEG.SAP : created at %s contains %d records \n", fileTime, edoTrackingFileCount)
+
+		alerting.Info(message)
 		log.Println(message)
-		return
+
 	}
 
-	log.Println(output)
-	outputSlice := strings.Split(output, " ")
-	linecount, _ := strconv.Atoi(outputSlice[0])
-
-	outputSlice = strings.Split(output, ".")
-	recieved := outputSlice[len(outputSlice)-1]
-	recievedat := recieved[0:2] + ":" + recieved[2:4] + ":" + recieved[4:6]
-	statusEdoResponseLEGSAP = "Received at " + recievedat
-	log.Println("statusEdoResponseLEGSAP ", statusEdoResponseLEGSAP)
-	records := linecount - 2
-	day0_NightTrackingFile = int64(records)
-	message = fmt.Sprintf("Tracking file recived from EDO contains %d records \n", day0_NightTrackingFile)
-	alerting.Info(message)
-	log.Println(message)
-	log.Println("edoTrackingFileSAPLEG complete")
+	log.Println("edoTrackingFileSAPLEG - complete")
 
 }
 
@@ -290,12 +281,12 @@ func getMPWAITcount() {
 		var transactions int64
 
 		rows.Scan(&transactions)
-		day1_MP_WAIT = transactions
+		mpWaitCount = transactions
 
 	}
 
-	message := fmt.Sprintf("Transactions waiting for EDO Postin \nMP-WAIT  %s : %d", day1Date, day1_MP_WAIT)
-	if (day1_WAITSCHEDSUBBATCH + day0_SCHEDULE) != day1_MP_WAIT {
+	message := fmt.Sprintf("Transactions waiting for EDO Postin \nMP-WAIT  %s : %d", day1Date, mpWaitCount)
+	if (day1_WAITSCHEDSUBBATCH + day0_SCHEDULE) != mpWaitCount {
 		message = message + fmt.Sprintf("\nRemedial action needed: Expected %d  \n ", (day1_WAITSCHEDSUBBATCH+day0_SCHEDULE))
 		alerting.Callout(message)
 		statusReleaseWarehousedPayments = "failed"
@@ -341,14 +332,14 @@ func getSCHEDULEcount() {
 	log.Println("getSCHEDULEcount() complete")
 
 }
-func edoFilesOutGoing() {
-	log.Println("edoFilesOutGoing(")
+func checkEdoFilesOutGoing() {
+	log.Println("checkEdoFilesOutGoing(")
 	dir := "/cdwasha/connectdirect/outgoing/EDO_DirectDebitRequest/"
 	age := "60"
 	fileName := "EDO_POST*"
 	err, found, lineCount, fileTime := fileChecks.CheckFile(fileName, dir, age)
 	if err != nil {
-		message := "edoFilesOutGoing check failed"
+		message := "checkEdoFilesOutGoing check failed"
 		log.Println(message + err.Error())
 		alerting.Callout(message)
 	}
@@ -357,10 +348,10 @@ func edoFilesOutGoing() {
 		alerting.Callout(message)
 
 	} else {
-		day1_edoPosting = int64(lineCount - 2)
-		message := fmt.Sprintf("EDO-POSTING file: created at %s contains %d records \n", fileTime, day1_edoPosting)
-		if day1_edoPosting != day1_MP_WAIT {
-			message += fmt.Sprintf("\nExpected %d ", day1_MP_WAIT)
+		edoFilesOutGoingCount = int64(lineCount - 2)
+		message := fmt.Sprintf("EDO-POSTING file: created at %s contains %d records \n", fileTime, edoFilesOutGoingCount)
+		if edoFilesOutGoingCount != mpWaitCount {
+			message += fmt.Sprintf("\nExpected %d ", mpWaitCount)
 			alerting.Callout(message)
 		} else {
 			alerting.Info(message)
@@ -368,7 +359,7 @@ func edoFilesOutGoing() {
 		}
 	}
 
-	log.Println("edoFilesOutGoing - complete")
+	log.Println("checkEdoFilesOutGoing - complete")
 }
 
 func checkFailureFolders() {
@@ -431,10 +422,10 @@ func edoFilesOutGoingArchived() {
 		alerting.Callout(message)
 		return
 	}
-	day1_edoPostingArchived = int64(lineCount - 2)
-	message := fmt.Sprintf("Archived EDO-POSTING file: created at %s contains %d records \n", fileTime, day1_edoPostingArchived)
-	if day1_edoPostingArchived != day1_MP_WAIT {
-		message += fmt.Sprintf("\nExpected %d ", day1_MP_WAIT)
+	edoFilesOutGoingArchivedCount = int64(lineCount - 2)
+	message := fmt.Sprintf("Archived EDO-POSTING file: created at %s contains %d records \n", fileTime, edoFilesOutGoingArchivedCount)
+	if edoFilesOutGoingArchivedCount != mpWaitCount {
+		message += fmt.Sprintf("\nExpected %d ", mpWaitCount)
 		alerting.Callout(message)
 	} else {
 		alerting.Info(message)
@@ -445,8 +436,8 @@ func edoFilesOutGoingArchived() {
 
 func edoResponseLEG() {
 
-	if statusEdoResponseLEG != "Not received" {
-		log.Println("Already " + statusEdoResponseLEG)
+	if edoResponseLEGStatus != "Not received" {
+		log.Println("Already " + edoResponseLEGStatus)
 		return
 	}
 	defaultFormat := "2006-01-02"
@@ -466,9 +457,9 @@ func edoResponseLEG() {
 		alerting.Callout(message)
 		return
 	}
-	day1_legacyResponse = int64(lineCount - 2)
-	statusEdoResponseLEG = "Recieved at " + fileTime
-	message := fmt.Sprintf("Archived Legacy Respomse file: recievedd at %s contains %d records \n", fileTime, day1_legacyResponse)
+	edoResponseLEGCount = int64(lineCount - 2)
+	edoResponseLEGStatus = "Recieved at " + fileTime
+	message := fmt.Sprintf("Archived Legacy Respomse file: recievedd at %s contains %d records \n", fileTime, edoResponseLEGCount)
 
 	alerting.Info(message)
 	log.Println(message)
@@ -477,8 +468,8 @@ func edoResponseLEG() {
 func edoResponseSAP() {
 
 	log.Println("EdoResponseSAP")
-	if statusEdoResponseSAP != "Not received" {
-		log.Println("Already " + statusEdoResponseSAP)
+	if edoResponseSAPStatus != "Not received" {
+		log.Println("Already " + edoResponseSAPStatus)
 		return
 	}
 	defaultFormat := "2006-01-02"
@@ -514,9 +505,9 @@ func edoResponseSAP() {
 	outputSlice = strings.Split(output, ".")
 	recieved := outputSlice[len(outputSlice)-1]
 	recievedat := recieved[0:2] + ":" + recieved[2:4] + ":" + recieved[4:6]
-	statusEdoResponseSAP = "Received at " + recievedat
-	day1_sapResponse = int64(records)
-	message = fmt.Sprintf("SAP Response file contains %d records \n%s", day1_sapResponse, statusEdoResponseSAP)
+	edoResponseSAPStatus = "Received at " + recievedat
+	edoResponseSAPCount = int64(records)
+	message = fmt.Sprintf("SAP Response file contains %d records \n%s", edoResponseSAPCount, edoResponseSAPStatus)
 
 	alerting.Info(message)
 	log.Println(message)
@@ -572,21 +563,21 @@ func buildMailMessage() {
 	subject := os.Getenv("ENVIRONMENT") + " Incoming Collections for monitoring " + day1Date
 
 	message := "Hi \n "
-	message += "\t 1. Global Office Date Roll over 23:30 –" + statusXxxDate + "\n"
-	message += "\t 2. ZA1 Date Roll over 00:20 –" + statusZa1Date + "\n"
-	message += fmt.Sprintf("\t 3. EDO Night Tracking responses 00:01  : %s with %d transactions ", statusEdoResponseLEGSAP, day0_NightTrackingFile)
+	message += "\t 1. Global Office Date Roll over 23:30 –" + globalDateStatus + "\n"
+	message += "\t 2. ZA1 Date Roll over 00:20 –" + za1DateStatus + "\n"
+	message += fmt.Sprintf("\t 3. EDO Night Tracking responses 00:01  : %s with %d transactions ", edoTrackingFileStatus, edoTrackingFileCount)
 	message += "\n\t 3. Release Warehoused Payments 00:35"
 	message += "\n\t\t\t  i.      Check automatic execution – " + statusReleaseWarehousedPayments
 	message +=
 		fmt.Sprintf("\n\t\t\t ii.      Check Pacs.003 move to MP Wait –  :  %d new transactions processed to move to MP_WAIT; %d transactions in tracking", day1_WAITSCHEDSUBBATCH, day0_SCHEDULE)
 	message +=
-		fmt.Sprintf("\n\t 4. Generate EDO file – 00:55 (Ideal) – File automatically created and sent to EDO with %d transactions", day1_edoPosting)
+		fmt.Sprintf("\n\t 4. Generate EDO file – 00:55 (Ideal) – File automatically created and sent to EDO with %d transactions", edoFilesOutGoingCount)
 	message +=
 		fmt.Sprintf("\n\t 5. EDO responses: ")
 	message +=
-		fmt.Sprintf("\n\t\t For SAP     :  %s containing %d records", statusEdoResponseSAP, day1_sapResponse)
+		fmt.Sprintf("\n\t\t For SAP     :  %s containing %d records", edoResponseSAPStatus, edoResponseSAPCount)
 	message +=
-		fmt.Sprintf("\n\t\t For Legacy:  %s containing %d records", statusEdoResponseLEG, day1_legacyResponse)
+		fmt.Sprintf("\n\t\t For Legacy:  %s containing %d records", edoResponseLEGStatus, edoResponseLEGCount)
 	message += " \n\n Thanks \n Your friendly bot"
 
 	alerting.SendMail(subject, message)
@@ -604,7 +595,7 @@ func handleTestCheck(w http.ResponseWriter, r *http.Request) {
 	//https://medium.com/doing-things-right/pretty-printing-http-requests-in-golang-a918d5aaa000
 
 	functions := []string{"testchecks", "getRolloverdate", "getWAITSCHEDSUBBATCHcount", "edoTrackingFileSAPLEG",
-		"getMPWAITcount", "getSCHEDULEcount", "edoFilesOutGoing", "checkFailureFolders", "edoFilesOutGoingArchived",
+		"getMPWAITcount", "getSCHEDULEcount", "checkEdoFilesOutGoing", "checkFailureFolders", "edoFilesOutGoingArchived",
 		"edoResponseLEG", "edoResponseSAP", "allStatuses", "buildMailMessage"}
 
 	var parm string
@@ -631,8 +622,8 @@ func handleTestCheck(w http.ResponseWriter, r *http.Request) {
 		getMPWAITcount()
 	case "getSCHEDULEcount":
 		getSCHEDULEcount()
-	case "edoFilesOutGoing":
-		edoFilesOutGoing()
+	case "checkEdoFilesOutGoing":
+		checkEdoFilesOutGoing()
 	case "checkFailureFolders":
 		checkFailureFolders()
 	case "edoFilesOutGoingArchived":
