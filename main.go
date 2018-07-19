@@ -344,7 +344,7 @@ func getSCHEDULEcount() {
 func edoFilesOutGoing() {
 	log.Println("edoFilesOutGoing(")
 	dir := "/cdwasha/connectdirect/outgoing/EDO_DirectDebitRequest/"
-	age := "1200"
+	age := "60"
 	fileName := "EDO_POST*"
 	err, found, lineCount, fileTime := fileChecks.CheckFile(fileName, dir, age)
 	if err != nil {
