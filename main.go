@@ -36,11 +36,9 @@ func main() {
 
 	}
 
-	alerting.Info("Starting Automated Standby version " +  version)
-
+	alerting.Info("Starting Automated Standby version " + version)
 
 	go handleRequests()
-
 
 	reset()
 
@@ -462,54 +460,33 @@ func edoFilesOutGoingArchived() {
 
 func edoResponseLEG() {
 
-	log.Println("EdoResponseLEG\n")
 	if statusEdoResponseLEG != "Not received" {
 		log.Println("Already " + statusEdoResponseLEG)
 		return
 	}
 	defaultFormat := "2006-01-02"
-
 	today := time.Now().Format(defaultFormat)
 
-	command := "wc -l /cdwasha/connectdirect/incoming/EDO_DirectDebitResponse/archive/" + today + "*ACDEBIT.RESPONSE.LEG.2*"
-	message := ""
-	log.Println(command)
-	//remote.RemoteSsh(command)
-	output, err := remote.RemoteSsh(command)
-	///
+	dir := "/cdwasha/connectdirect/incoming/EDO_DirectDebitResponse/archive/"
+	age := "60"
+	fileName := today + "*ACDEBIT.RESPONSE.LEG.2*"
+	err, found, lineCount, fileTime := fileChecks.CheckFile(fileName, dir, age)
 	if err != nil {
-
-		log.Println("error:", err.Error())
-		if err.Error() == "Process exited with status 1" {
-			message = "EDO ResponseLEG file check failed "
-			log.Println(message)
-		}
+		message := "edoResponseLEG check failed"
+		log.Println(message + err.Error())
 		alerting.Callout(message)
-		log.Println(message)
-		return
 	}
-
-	log.Println(output)
-	outputSlice := strings.Split(output, " ")
-	linecount, _ := strconv.Atoi(outputSlice[0])
-	if linecount == 0 {
-		message = "EDO ResponseLEG file not found in /cdwasha/connectdirect/incoming/EDO-DirectDebitResponse/archive/"
+	if !found {
+		message := "EDO Legacy response file not found in /cdwasha/connectdirect/incoming/EDO_DirectDebitResponse/archive/ "
 		alerting.Callout(message)
 		return
 	}
-	records := linecount - 2
-	outputSlice = strings.Split(output, ".")
-	recieved := outputSlice[len(outputSlice)-1]
-	recievedat := recieved[0:2] + ":" + recieved[2:4] + ":" + recieved[4:6]
-	statusEdoResponseLEG = "Received at " + recievedat
-	day1_legacyResponse = int64(records)
-	message = fmt.Sprintf("Legacy Response file contains %d records %s", day1_legacyResponse, statusEdoResponseLEG)
+	day1_legacyResponse = int64(lineCount - 2)
+	statusEdoResponseLEG = "Recieved at " + fileTime
+	message := fmt.Sprintf("Archived Legacy Respomse file: recievedd at %s contains %d records \n", fileTime, day1_legacyResponse)
 
 	alerting.Info(message)
 	log.Println(message)
-
-	log.Println("EdoResponseLEG() complete")
-
 }
 
 func edoResponseSAP() {
