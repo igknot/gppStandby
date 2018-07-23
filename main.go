@@ -118,6 +118,7 @@ func reset() {
 		CreationTime:  "",
 		AgeInMinutes:  "60",
 		Found:         false,
+		Detail:        "",
 	}
 
 	edoResponseLEGfile = fileChecks.FileDetail{
@@ -499,9 +500,42 @@ func edoResponseSAP() {
 	}
 	message := fmt.Sprintf("SAP  Response file: recieved at %s contains %d records \n", edoResponseSAPfile.CreationTime, edoResponseSAPfile.LineCount-2)
 	edoResponseSAPfile.Status = "Received at " + edoResponseSAPfile.CreationTime
-	alerting.Info(message)
-	log.Println(message)
 
+	edoResponseSAPfile.Detail , _ = edoResponseSAPdetailedStatus(edoResponseSAPfile)
+
+	message = message + edoResponseSAPfile.Detail
+	alerting.Info(message)
+	
+
+}
+func edoResponseSAPdetailedStatus(fd fileChecks.FileDetail) ( detail string ,err error) {
+	log.Println("edoResponseSAPdetailedStatus")
+	defer log.Println("edoResponseSAPdetailedStatus - complete")
+
+	command := "find " + fd.DirectoryName + " -type f -cmin -" + fd.AgeInMinutes + " -name '" + fd.FileName + `' -exec  awk '{ print substr($1,68,2) }' {} \; `
+	output, err := remote.RemoteSsh(command)
+	if err != nil {
+		log.Printf("error-recieved\noutput: %s \n error: %s", output, err.Error())
+		return
+	}
+	if len(output) == 0 {
+		return
+	}
+
+	complete := strings.Count(output, "00")
+	rejected := strings.Count(output, "02")
+	tracking := strings.Count(output, "99")
+	accClosed := strings.Count(output, "12")
+	accLocked := strings.Count(output, "06")
+
+	//log.Println("OUTPUT:", output)
+	detail = detail + fmt.Sprintf("Complete(00)   :  %d \n", complete)
+	detail = detail + fmt.Sprintf("Rejected(02)   :  %d \n", rejected)
+	detail = detail + fmt.Sprintf("Tracking(99)   :  %d \n", tracking)
+	detail = detail + fmt.Sprintf("Acc closed(12) :  %d \n", accClosed)
+	detail = detail + fmt.Sprintf("Acc locked(06) :  %d \n", accLocked)
+
+	return
 }
 
 func allStatuses() {
@@ -565,7 +599,7 @@ func handleRequests() {
 
 func handleTestCheck(w http.ResponseWriter, r *http.Request) {
 	//https://medium.com/doing-things-right/pretty-printing-http-requests-in-golang-a918d5aaa000
-	functions := []string{"reset","getRolloverdate", "getWAITSCHEDSUBBATCHcount", "edoTrackingFileSAPLEG",
+	functions := []string{"reset", "getRolloverdate", "getWAITSCHEDSUBBATCHcount", "edoTrackingFileSAPLEG",
 		"getMPWAITcount", "getSCHEDULEcount", "checkEdoFilesOutGoing", "checkFailureFolders", "checkEdoFilesOutGoingArchived",
 		"edoResponseLEG", "edoResponseSAP", "edoTrackingSAPLEG", "allStatuses", "buildMailMessage"}
 
