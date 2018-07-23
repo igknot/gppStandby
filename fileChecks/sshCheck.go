@@ -8,11 +8,56 @@ import (
 	"strings"
 )
 
+type FileDetail struct {
+	FileName      string
+	DirectoryName string
+	Status        string
+	LineCount     int
+	CreationTime  string
+	AgeInMinutes  string
+	Found         bool
+}
+
+func (fd *FileDetail) CheckFileLength() (err error) {
+	command := "find " + fd.DirectoryName + " -type f -cmin -" + fd.AgeInMinutes + " -name '" + fd.FileName + `' -exec wc -l {} \; `
+	fd.Found = false
+	output, err := remote.RemoteSsh(command)
+	if err != nil {
+		log.Printf("error-recieved\noutput: %v \n error: %v", output, err.Error())
+		return
+	}
+	if len(output) == 0 {
+		return
+	}
+	fd.Found = true
+	outputSlice := strings.Split(output, " ")
+	fd.LineCount, _ = strconv.Atoi(outputSlice[0])
+	return
+}
+
+func (fd *FileDetail) CheckFileCreationTime() (err error) {
+	command := "find " + fd.DirectoryName + " -type f -cmin -" + fd.AgeInMinutes + " -name '" + fd.FileName + `' -exec ls -l {} \; `
+	fd.Found = false
+	output, err := remote.RemoteSsh(command)
+	if err != nil   {
+		log.Printf("error-recieved\noutput: %s \n error: %s", output, err.Error())
+		return
+	}
+	if len(output) == 0 {
+		return
+	}
+	fd.Found = true
+	outputSlice := strings.Split(output, " ")
+	fd.CreationTime = outputSlice[7]
+	return
+}
+
 func CheckFile(filename, directory, age string) (err error, found bool, lineCount int, fileTime string) {
 
 	command := "find " + directory + " -type f -cmin -" + age + " -name '" + filename + `' -exec wc -l {} \; `
 
 	output, err := remote.RemoteSsh(command)
+
 	if err != nil {
 
 		if err.Error() == "Process exited with status 1" {
