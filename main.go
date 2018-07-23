@@ -116,7 +116,7 @@ func reset() {
 		Status:        "Not received",
 		LineCount:     0,
 		CreationTime:  "",
-		AgeInMinutes:  "800",
+		AgeInMinutes:  "60",
 		Found:         false,
 	}
 
@@ -126,7 +126,7 @@ func reset() {
 		Status:        "Not received",
 		LineCount:     0,
 		CreationTime:  "",
-		AgeInMinutes:  "800",
+		AgeInMinutes:  "60",
 		Found:         false,
 	}
 
@@ -136,7 +136,7 @@ func reset() {
 		Status:        "Not received",
 		LineCount:     0,
 		CreationTime:  "",
-		AgeInMinutes:  "800",
+		AgeInMinutes:  "60",
 		Found:         false,
 	}
 	edoOutgoingfile = fileChecks.FileDetail{
@@ -145,7 +145,7 @@ func reset() {
 		Status:        "Not received",
 		LineCount:     0,
 		CreationTime:  "",
-		AgeInMinutes:  "800",
+		AgeInMinutes:  "60",
 		Found:         false,
 	}
 	edoOutgoingfileArchived = fileChecks.FileDetail{
@@ -154,7 +154,7 @@ func reset() {
 		Status:        "Not received",
 		LineCount:     0,
 		CreationTime:  "",
-		AgeInMinutes:  "800",
+		AgeInMinutes:  "60",
 		Found:         false,
 	}
 
