@@ -8,16 +8,16 @@ import (
 	"net/smtp"
 	"strconv"
 
-	"time"
-	"strings"
 	"os"
+	"strings"
+	"time"
 )
-type comment struct {
 
-	ID     string `json:"id" bson:"_id"`
-	Author string        `json:"author" bson:"author"`
-	Text   string        `json:"text" bson:"text"`
-	When   time.Time     `json:"when" bson:"when"`
+type comment struct {
+	ID     string    `json:"id" bson:"_id"`
+	Author string    `json:"author" bson:"author"`
+	Text   string    `json:"text" bson:"text"`
+	When   time.Time `json:"when" bson:"when"`
 }
 
 func main() {
@@ -28,11 +28,9 @@ func main() {
 
 	dbtest()
 
-
-
 }
 
-func dbtest(){
+func dbtest() {
 
 	//client, err := mongo.Connect(context.Background(), "mongodb://localhost:27017", nil)
 	//defer client.Disconnect(context.Background())
@@ -47,17 +45,9 @@ func dbtest(){
 	//	fmt.Printf("unable to connext to database ", result)
 	//}
 
-
-
 }
 
-
-
-
-
-
-
-func callouttest(){
+func callouttest() {
 	alerting.Callout("this is a test from gppstandby ")
 }
 
@@ -67,19 +57,13 @@ func mailtest() {
 	// := []string{"philip.louw@standardbank.co.za", "philip.gottfried.louw@gmail.com","GPP_Bulk_Payments_Technical_Team@standardbank.com"}
 	//
 	//
-	to := strings.Split(os.Getenv("MAIL_TO"),",")
-	for _,t :=range strings.Split(os.Getenv("MAIL_TO"),","){
+	to := strings.Split(os.Getenv("MAIL_TO"), ",")
+	for _, t := range strings.Split(os.Getenv("MAIL_TO"), ",") {
 		fmt.Println("recipient:", t)
-
 
 	}
 	//fmt.Println(t1)
-//	fmt.Println(to)
-
-
-
-
-
+	//	fmt.Println(to)
 
 	server := "mail.standardbank.co.za:25"
 	subject := "Test to mail group"
@@ -92,7 +76,7 @@ func mailtest() {
 
 	c.Mail(mailfrom)
 	for _, t := range to {
-		fmt.Println("recipient:",t)
+		fmt.Println("recipient:", t)
 		c.Rcpt(t)
 	}
 

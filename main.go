@@ -202,7 +202,7 @@ func getRolloverdate(office string) {
 		if office == "ZA1" {
 			za1Date = bsnessdate[:10]
 			if bsnessdate[:10] != today {
-				message = fmt.Sprintf("BUSINESS_DATE for ZA1 automatically rolled \n%s", tomorrow, za1Date)
+				message = fmt.Sprintf("BUSINESS_DATE for ZA1 not roled ZA1: %s \n Expected: %s",  za1Date,tomorrow, )
 				za1DateStatus = "Automic roll failed"
 			} else {
 				message = fmt.Sprintf("Date roll for office ZA1 complete now :   %s", za1Date)
@@ -413,15 +413,21 @@ func checkFailureFolders() {
 		log.Println("checkFailureFolders: no new files ")
 		return
 	}
-	var folders string
+	var m map[string]int
+
 	for k, v := range strings.Split(output, "\n") {
 		subfolder := strings.Split(v, `/`)
 		if len(subfolder) > 4 {
-
-			folders = folders + " " + subfolder[4]
+			log.Printf("Failfolder: %s" ,  v)
+			m[subfolder[4]] = 1
 		}
 		log.Println(k, v)
 	}
+	var folders string
+	for k,_ := range m {
+		folders = folders + k
+	}
+
 	alerting.Callout("New files in failure folder:" + folders)
 
 }
@@ -436,6 +442,8 @@ func edoTrackingSAPLEG() {
 	//			After file has been recieved
 	//					operations> Tasks > New day Activities  > generate posting req for EDO > EDO_NEW > execute`
 
+	log.Println("edoTrackingSAPLEG")
+	defer log.Println("edoTrackingSAPLEG")
 	if edoTrackingSAPLEGfile.Found {
 		return
 	}
@@ -483,6 +491,8 @@ func edoResponseLEG() {
 }
 
 func edoResponseSAP() {
+	log.Println("edoResponseSAP")
+	defer log.Println("edoResponseSAP - complete")
 	if edoResponseSAPfile.Found {
 		return
 	}
@@ -501,14 +511,13 @@ func edoResponseSAP() {
 	message := fmt.Sprintf("SAP  Response file: recieved at %s contains %d records \n", edoResponseSAPfile.CreationTime, edoResponseSAPfile.LineCount-2)
 	edoResponseSAPfile.Status = "Received at " + edoResponseSAPfile.CreationTime
 
-	edoResponseSAPfile.Detail , _ = edoResponseSAPdetailedStatus(edoResponseSAPfile)
+	edoResponseSAPfile.Detail, _ = edoResponseSAPdetailedStatus(edoResponseSAPfile)
 
 	message = message + edoResponseSAPfile.Detail
 	alerting.Info(message)
-	
-
 }
-func edoResponseSAPdetailedStatus(fd fileChecks.FileDetail) ( detail string ,err error) {
+
+func edoResponseSAPdetailedStatus(fd fileChecks.FileDetail) (detail string, err error) {
 	log.Println("edoResponseSAPdetailedStatus")
 	defer log.Println("edoResponseSAPdetailedStatus - complete")
 
@@ -599,9 +608,24 @@ func handleRequests() {
 
 func handleTestCheck(w http.ResponseWriter, r *http.Request) {
 	//https://medium.com/doing-things-right/pretty-printing-http-requests-in-golang-a918d5aaa000
-	functions := []string{"reset", "getRolloverdate", "getWAITSCHEDSUBBATCHcount", "edoTrackingFileSAPLEG",
-		"getMPWAITcount", "getSCHEDULEcount", "checkEdoFilesOutGoing", "checkFailureFolders", "checkEdoFilesOutGoingArchived",
-		"edoResponseLEG", "edoResponseSAP", "edoTrackingSAPLEG", "allStatuses", "buildMailMessage"}
+	functions := []string{
+		"setDates",
+		"reset",
+		"getRolloverdate-ZA1",
+		"getRolloverdate-global",
+		"getWAITSCHEDSUBBATCHcount",
+		"getMPWAITcount",
+		"getSCHEDULEcount",
+		"checkEdoFilesOutGoing",
+		"checkEdoFilesOutGoingArchived",
+		"checkFailureFolders",
+		"edoTrackingSAPLEG",
+		"edoResponseLEG",
+		"edoResponseSAP",
+		"allStatuses",
+		"buildMailMessage",
+
+	}
 
 	var parm string
 	if parm = r.URL.Query().Get("function"); parm == "" {
@@ -616,8 +640,12 @@ func handleTestCheck(w http.ResponseWriter, r *http.Request) {
 
 	switch parm {
 
-	case "getRolloverdate":
+	case "setDates" :
+		setDates()
+	case "getRolloverdate-ZA1":
 		getRolloverdate("ZA1")
+	case "getRolloverdate-global":
+		getRolloverdate("***")
 	case "reset":
 		reset()
 	case "getWAITSCHEDSUBBATCHcount":
@@ -632,7 +660,7 @@ func handleTestCheck(w http.ResponseWriter, r *http.Request) {
 		checkFailureFolders()
 	case "checkEdoFilesOutGoingArchived":
 		checkEdoFilesOutGoingArchived()
-	case "edoTrackingSAPLEG":
+	case "edoTrackingFileSAPLEG":
 		edoTrackingSAPLEG()
 	case "edoResponseLEG":
 		edoResponseLEG()

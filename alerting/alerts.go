@@ -1,22 +1,22 @@
 package alerting
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
-	"net/http"
-	"os"
-	"strings"
 	"log"
+	"net/http"
 	"net/smtp"
-	"time"
+	"os"
 	"regexp"
-	"bytes"
+	"strings"
+	"time"
 )
 
 //invoke callout with
 func Callout(message string) {
 
-	Info( "INVOKE - CALL OUT\n" + message )
+	Info("INVOKE - CALL OUT\n" + message)
 
 	reg, err := regexp.Compile("[^a-zA-Z0-9- :\t/]+")
 	if err != nil {
@@ -25,48 +25,42 @@ func Callout(message string) {
 
 	message = reg.ReplaceAllString(message, "")
 	url := os.Getenv("CALLOUT_ENDPOINT") + os.Getenv("CHAT_ID")
-	 log.Println("URL:>",url)
+	log.Println("URL:>", url)
 
+	var jsonStr = []byte(`{"message":"Please check GPP. ` + message + `","title":"gpp callout" }`)
 
-    var jsonStr = []byte(`{"message":"Please check GPP. ` + message + `","title":"gpp callout" }`)
+	log.Println("call out:", string(jsonStr))
 
-    log.Println("call out:",string(jsonStr))
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
 
-    req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
-    req.Header.Set("Accept", "application/json")
-    req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+	defer resp.Body.Close()
 
-    client := &http.Client{}
-    resp, err := client.Do(req)
-    if err != nil {
-        log.Println(err.Error())
-        return
-    }
-    defer resp.Body.Close()
-
-    log.Println("response Status:", resp.Status)
-    log.Println("response Headers:", resp.Header)
-    body, _ := ioutil.ReadAll(resp.Body)
-    log.Println("response Body:", string(body))
-
-
-
+	log.Println("response Status:", resp.Status)
+	log.Println("response Headers:", resp.Header)
+	body, _ := ioutil.ReadAll(resp.Body)
+	log.Println("response Body:", string(body))
 
 }
-
 
 func Info(message string) {
 	defaultFormat := "2006-01-02 15:04"
 	infoTime := time.Now().Format(defaultFormat)
 	url := os.Getenv("ALERT_ENDPOINT") + os.Getenv("CHAT_ID")
-	 // clear special characters from message - It seems to cause hal displeasure
+	// clear special characters from message - It seems to cause hal displeasure
 	reg, err := regexp.Compile("[^a-zA-Z0-9- :\n\t/]+")
 	if err != nil {
 		log.Fatal(err)
 	}
-	message = infoTime +"\n"+ message
+	message = infoTime + "\n" + message
 	message = reg.ReplaceAllString(message, "")
-
 
 	resp, err := http.Post(url, "text/plain", strings.NewReader(message))
 
@@ -79,23 +73,23 @@ func Info(message string) {
 
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			log.Printf("Telegram message send status:%s \nError: %s\nBody:%s",status,err.Error(),body)
+			log.Printf("Telegram message send status:%s \nError: %s\nBody:%s", status, err.Error(), body)
 		}
-		log.Printf("Telegram message: % send status: %s",message,status)
+		log.Printf("Telegram message: % send status: %s", message, status)
 	}
 
 }
 
-func SendMail(subject ,message string ) {
+func SendMail(subject, message string) {
 	mailfrom := os.Getenv("MAILFROM")
 	if mailfrom == "" {
 		log.Println("MAILFROM not set")
 	}
-	to := strings.Split(os.Getenv("MAILTO"),",")
+	to := strings.Split(os.Getenv("MAILTO"), ",")
 	var mailto string
 	if len(to) == 0 {
 		log.Println("MAILTO environment variable not set")
-	} else{
+	} else {
 
 		log.Println("mailto: ", to)
 
@@ -112,7 +106,7 @@ func SendMail(subject ,message string ) {
 
 	c.Mail(mailfrom)
 	for _, t := range to {
-		log.Println("recipient:",t)
+		log.Println("recipient:", t)
 		c.Rcpt(t)
 	}
 
@@ -121,7 +115,6 @@ func SendMail(subject ,message string ) {
 		log.Println(err.Error())
 	}
 	defer data.Close()
-
 
 	defaultFormat := "2006-01-02"
 	t := time.Now().Format(defaultFormat)
@@ -134,6 +127,4 @@ func SendMail(subject ,message string ) {
 
 	log.Println("Mail sent to " + mailto)
 
-
 }
-
