@@ -3,18 +3,17 @@ package remote
 import (
 	"bytes"
 
+	"encoding/base64"
+	"fmt"
+	"github.com/igknot/gppStandby/alerting"
 	"golang.org/x/crypto/ssh"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
-	"encoding/base64"
-	"github.com/igknot/gppStandby/alerting"
-	"fmt"
 )
 
 func RemoteSsh(cmd string) (string, error) {
-
 
 	var sshfile []byte
 
@@ -49,7 +48,7 @@ func RemoteSsh(cmd string) (string, error) {
 	addr := sshEndpoint()
 	client, err := ssh.Dial("tcp", addr, config)
 	if err != nil {
-		log.Println("unable to connect via ssh to ", addr , err.Error())
+		log.Println("unable to connect via ssh to ", addr, err.Error())
 		return "", err
 	}
 	// Create a session. It is one session per command.
@@ -64,7 +63,7 @@ func RemoteSsh(cmd string) (string, error) {
 
 	err = session.Run(cmd)
 	if err != nil {
-		log.Println("Unable to execute command \n",cmd ,"\n", err.Error())
+		log.Println("Unable to execute command \n", cmd, "\n", err.Error())
 
 	}
 

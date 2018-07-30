@@ -40,7 +40,7 @@ func (fd *FileDetail) CheckFileCreationTime() (err error) {
 	command := "find " + fd.DirectoryName + " -type f -cmin -" + fd.AgeInMinutes + " -name '" + fd.FileName + `' -exec ls -l {} \; `
 	fd.Found = false
 	output, err := remote.RemoteSsh(command)
-	if err != nil   {
+	if err != nil {
 		log.Printf("error-recieved\noutput: %s \n error: %s", output, err.Error())
 		return
 	}

@@ -16,13 +16,12 @@ func NewConnection() *sql.DB {
 	db, err := sql.Open("oci8", connectionString)
 	if err != nil {
 
-		panic("Unable to create database connection", )
+		panic("Unable to create database connection")
 	}
 
 	if err = db.Ping(); err != nil {
 		db.Close()
 		panic("Error connecting to the database: %s\n" + err.Error())
-
 
 	}
 	return db
